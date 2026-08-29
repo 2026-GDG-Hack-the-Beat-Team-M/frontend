@@ -52,7 +52,7 @@ export function TapArea({ myTeam, myTapCount, onTap, disabled }: TapAreaProps) {
         onPointerDown={handlePointerDown}
         disabled={disabled || isTapLimited}
         className={clsx(
-          'relative w-full h-36 rounded-3xl overflow-hidden font-en font-black select-none transition-transform duration-75 active:scale-95 flex flex-col items-center justify-center p-4 border shadow-2xl',
+          'relative w-full h-[76px] rounded-2xl overflow-hidden font-en font-black select-none transition-transform duration-75 active:scale-[0.98] flex flex-col items-center justify-center p-3 border shadow-2xl',
           isSideA
             ? 'bg-gradient-to-br from-accent-dark/80 via-accent/90 to-accent-light text-white border-accent-light/40 shadow-glow-accent'
             : 'bg-gradient-to-br from-blue-700 via-neon-cyan/90 to-cyan-300 text-black border-cyan-200/50 shadow-glow-cyan',
@@ -69,7 +69,9 @@ export function TapArea({ myTeam, myTapCount, onTap, disabled }: TapAreaProps) {
         ))}
 
         <div className="relative z-10 flex flex-col items-center pointer-events-none">
-          <span className="text-3xl tracking-wider">TAP BOOST! 🔥</span>
+          <span className="text-xl tracking-wider">
+            {myTeam ? 'TAP BOOST! 🔥' : '먼저 곡을 선택하세요'}
+          </span>
           <span className="text-xs font-semibold tracking-widest mt-1 opacity-90 font-kr">
             {myTeam
               ? `TRACK ${myTeam} 팀을 위해 연타하세요!`
