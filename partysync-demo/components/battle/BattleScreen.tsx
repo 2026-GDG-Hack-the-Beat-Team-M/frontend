@@ -21,6 +21,20 @@ interface BattleScreenProps {
   onBattleEnd: (result: RoundResult) => void;
 }
 
+/** 진입 시 이미 쌓여 있는 시드 득표 (PRD §0.6) */
+function createSeedScores(): { seedA: number; seedB: number } {
+  const totalSeed = randomInt(
+    BATTLE_CONFIG.SEED_TOTAL_MIN,
+    BATTLE_CONFIG.SEED_TOTAL_MAX
+  );
+  const ratio = randomFloat(
+    BATTLE_CONFIG.SEED_RATIO_MIN,
+    BATTLE_CONFIG.SEED_RATIO_MAX
+  );
+  const seedA = Math.round(totalSeed * ratio);
+  return { seedA, seedB: totalSeed - seedA };
+}
+
 export function BattleScreen({
   preset,
   currentRound,
@@ -29,32 +43,14 @@ export function BattleScreen({
   // Preroll for rounds > 1
   const [isPrerolling, setIsPrerolling] = useState(currentRound > 1);
 
-  // Scores with initial seed
-  const [scoreA, setScoreA] = useState(() => {
-    const totalSeed = randomInt(
-      BATTLE_CONFIG.SEED_TOTAL_MIN,
-      BATTLE_CONFIG.SEED_TOTAL_MAX
-    );
-    const ratio = randomFloat(
-      BATTLE_CONFIG.SEED_RATIO_MIN,
-      BATTLE_CONFIG.SEED_RATIO_MAX
-    );
-    return Math.round(totalSeed * ratio);
-  });
+  const [seed] = useState(createSeedScores);
+  // 배틀마다 군중이 미는 곡이 랜덤으로 정해진다. 사용자가 진영을 고르기 전에 결정되므로
+  // 내 선택과 무관하며, 이 쏠림을 뒤집는 것이 연타의 목적이 된다.
+  const [crowdFavorsA] = useState(() => Math.random() < 0.5);
+  const [scoreA, setScoreA] = useState(seed.seedA);
+  const [scoreB, setScoreB] = useState(seed.seedB);
 
-  const [scoreB, setScoreB] = useState(() => {
-    const totalSeed = randomInt(
-      BATTLE_CONFIG.SEED_TOTAL_MIN,
-      BATTLE_CONFIG.SEED_TOTAL_MAX
-    );
-    const ratio = randomFloat(
-      BATTLE_CONFIG.SEED_RATIO_MIN,
-      BATTLE_CONFIG.SEED_RATIO_MAX
-    );
-    return Math.round(totalSeed * (1 - ratio));
-  });
-
-  const [remainingSeconds, setRemainingSeconds] = useState(
+  const [remainingSeconds, setRemainingSeconds] = useState<number>(
     BATTLE_CONFIG.BATTLE_DURATION
   );
   const [myTeam, setMyTeam] = useState<BattleSide | null>(null);
@@ -64,27 +60,34 @@ export function BattleScreen({
   const battleTimerRef = useRef<BattleTimer | null>(null);
   const voteSimulatorRef = useRef<VoteSimulator | null>(null);
 
+  // 타이머 콜백이 매 렌더마다 새 값을 읽되, 타이머 자체는 재시작되지 않도록 ref에 보관한다.
+  const liveStateRef = useRef({ scoreA, scoreB, myTeam, myTapCount, preset });
+  liveStateRef.current = { scoreA, scoreB, myTeam, myTapCount, preset };
+
   const isCritical = remainingSeconds <= BATTLE_CONFIG.CRITICAL_TIME_THRESHOLD;
 
-  // Handle battle completion
   const handleTimeout = useCallback(() => {
     voteSimulatorRef.current?.stop();
-    const result = resolveWinner(
-      preset,
-      scoreA,
-      scoreB,
-      myTeam,
-      myTapCount
+    const live = liveStateRef.current;
+    setRoundResult(
+      resolveWinner(
+        live.preset,
+        live.scoreA,
+        live.scoreB,
+        live.myTeam,
+        live.myTapCount
+      )
     );
-    setRoundResult(result);
-  }, [preset, scoreA, scoreB, myTeam, myTapCount]);
+  }, []);
 
-  // Start battle timers after preroll
+  // 프리롤이 끝나면 20초 배틀 1회만 구동한다. (점수 변화로 재시작되면 안 된다)
   useEffect(() => {
     if (isPrerolling) return;
 
-    // Start Vote Simulator
     voteSimulatorRef.current = new VoteSimulator({
+      sideAProbability: crowdFavorsA
+        ? 0.5 + BATTLE_CONFIG.CROWD_BIAS
+        : 0.5 - BATTLE_CONFIG.CROWD_BIAS,
       onVoteDelta: (side, delta) => {
         if (side === 'A') {
           setScoreA((prev) => prev + delta);
@@ -95,15 +98,10 @@ export function BattleScreen({
     });
     voteSimulatorRef.current.start();
 
-    // Start 20s Battle Timer
     battleTimerRef.current = new BattleTimer({
       durationSeconds: BATTLE_CONFIG.BATTLE_DURATION,
-      onTick: (remaining) => {
-        setRemainingSeconds(remaining);
-      },
-      onComplete: () => {
-        handleTimeout();
-      },
+      onTick: setRemainingSeconds,
+      onComplete: handleTimeout,
     });
     battleTimerRef.current.start();
 
@@ -111,41 +109,42 @@ export function BattleScreen({
       voteSimulatorRef.current?.stop();
       battleTimerRef.current?.stop();
     };
-  }, [isPrerolling, handleTimeout]);
+  }, [isPrerolling, handleTimeout, crowdFavorsA]);
 
   // User Tap Boost
   const handleUserTap = (side: BattleSide) => {
+    if (roundResult) return;
+
+    // 첫 탭으로 진영이 확정되며, 이후 변경할 수 없다 (PRD §0.6)
+    const targetSide = myTeam ?? side;
     if (myTeam === null) {
       setMyTeam(side);
+    } else if (side !== myTeam) {
+      return;
     }
 
-    if (myTapCount < BATTLE_CONFIG.TAP_LIMIT) {
-      const weight = randomInt(
-        BATTLE_CONFIG.TAP_WEIGHT_MIN,
-        BATTLE_CONFIG.TAP_WEIGHT_MAX
-      );
-      if (side === 'A') {
-        setScoreA((prev) => prev + weight);
-      } else {
-        setScoreB((prev) => prev + weight);
-      }
-      setMyTapCount((prev) => prev + 1);
+    if (myTapCount >= BATTLE_CONFIG.TAP_LIMIT) return;
+
+    const weight = randomInt(
+      BATTLE_CONFIG.TAP_WEIGHT_MIN,
+      BATTLE_CONFIG.TAP_WEIGHT_MAX
+    );
+    if (targetSide === 'A') {
+      setScoreA((prev) => prev + weight);
+    } else {
+      setScoreB((prev) => prev + weight);
     }
+    setMyTapCount((prev) => prev + 1);
   };
 
   return (
     <Screen isCritical={isCritical}>
       <CriticalTimeOverlay isVisible={isCritical} />
 
-      {/* Preroll Modal */}
       {isPrerolling && (
-        <PrerollIntro
-          preset={preset}
-          onComplete={() => setIsPrerolling(false)}
-        />
+        <PrerollIntro preset={preset} onComplete={() => setIsPrerolling(false)} />
       )}
 
-      {/* Winner Reveal Modal */}
       {roundResult && (
         <WinnerReveal
           result={roundResult}
@@ -161,10 +160,8 @@ export function BattleScreen({
         </span>
       </div>
 
-      {/* Countdown Timer */}
       <Countdown remainingSeconds={remainingSeconds} />
 
-      {/* Tug of War Gauge */}
       <div className="my-2">
         <TugGauge scoreA={scoreA} scoreB={scoreB} />
       </div>
@@ -177,7 +174,7 @@ export function BattleScreen({
           isSelected={myTeam === 'A'}
           isOpponentSelected={myTeam === 'B'}
           onSelect={() => handleUserTap('A')}
-          disabled={myTapCount >= BATTLE_CONFIG.TAP_LIMIT}
+          disabled={myTeam === 'B'}
         />
 
         <SplitCard
@@ -186,7 +183,7 @@ export function BattleScreen({
           isSelected={myTeam === 'B'}
           isOpponentSelected={myTeam === 'A'}
           onSelect={() => handleUserTap('B')}
-          disabled={myTapCount >= BATTLE_CONFIG.TAP_LIMIT}
+          disabled={myTeam === 'A'}
         />
       </div>
 
@@ -195,7 +192,7 @@ export function BattleScreen({
         <TapArea
           myTeam={myTeam}
           myTapCount={myTapCount}
-          onTap={(side) => handleUserTap(side)}
+          onTap={handleUserTap}
         />
       </div>
     </Screen>

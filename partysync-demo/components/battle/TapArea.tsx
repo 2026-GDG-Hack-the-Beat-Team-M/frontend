@@ -20,9 +20,11 @@ interface Ripple {
 export function TapArea({ myTeam, myTapCount, onTap, disabled }: TapAreaProps) {
   const [ripples, setRipples] = useState<Ripple[]>([]);
   const isTapLimited = myTapCount >= BATTLE_CONFIG.TAP_LIMIT;
+  // 진영을 고르기 전에는 연타할 수 없다. 임의로 A를 대신 선택하면 안 된다.
+  const isLocked = myTeam === null;
 
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (disabled || isTapLimited) return;
+    if (disabled || isTapLimited || !myTeam) return;
 
     // Trigger haptic feedback
     triggerHaptic(15);
@@ -38,22 +40,22 @@ export function TapArea({ myTeam, myTapCount, onTap, disabled }: TapAreaProps) {
       setRipples((prev) => prev.filter((r) => r.id !== newRipple.id));
     }, 600);
 
-    // If no team is selected yet, default to A or require selection
-    const targetSide = myTeam || 'A';
-    onTap(targetSide);
+    onTap(myTeam);
   };
 
-  const isSideA = myTeam === 'A' || myTeam === null;
+  const isSideA = myTeam === 'A';
 
   return (
     <div className="w-full flex flex-col items-center gap-2">
       <button
         type="button"
         onPointerDown={handlePointerDown}
-        disabled={disabled || isTapLimited}
+        disabled={disabled || isTapLimited || isLocked}
         className={clsx(
           'relative w-full h-36 rounded-3xl overflow-hidden font-en font-black select-none transition-transform duration-75 active:scale-95 flex flex-col items-center justify-center p-4 border shadow-2xl',
-          isSideA
+          isLocked
+            ? 'bg-surface-2 text-ink-dim border-white/10'
+            : isSideA
             ? 'bg-gradient-to-br from-accent-dark/80 via-accent/90 to-accent-light text-white border-accent-light/40 shadow-glow-accent'
             : 'bg-gradient-to-br from-blue-700 via-neon-cyan/90 to-cyan-300 text-black border-cyan-200/50 shadow-glow-cyan',
           disabled && 'opacity-60 pointer-events-none'
@@ -69,11 +71,13 @@ export function TapArea({ myTeam, myTapCount, onTap, disabled }: TapAreaProps) {
         ))}
 
         <div className="relative z-10 flex flex-col items-center pointer-events-none">
-          <span className="text-3xl tracking-wider">TAP BOOST! 🔥</span>
+          <span className="text-3xl tracking-wider">
+            {isLocked ? 'PICK A TRACK' : 'TAP BOOST! 🔥'}
+          </span>
           <span className="text-xs font-semibold tracking-widest mt-1 opacity-90 font-kr">
             {myTeam
               ? `TRACK ${myTeam} 팀을 위해 연타하세요!`
-              : '원하는 곡을 누르고 연타하세요!'}
+              : '위에서 응원할 곡을 먼저 골라주세요'}
           </span>
         </div>
       </button>

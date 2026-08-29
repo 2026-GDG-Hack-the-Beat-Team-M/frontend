@@ -8,7 +8,7 @@ interface PrerollIntroProps {
 }
 
 export function PrerollIntro({ preset, onComplete }: PrerollIntroProps) {
-  const [countdown, setCountdown] = useState(BATTLE_CONFIG.PREROLL_DURATION);
+  const [countdown, setCountdown] = useState<number>(BATTLE_CONFIG.PREROLL_DURATION);
 
   useEffect(() => {
     const timer = setInterval(() => {

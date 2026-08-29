@@ -2,14 +2,14 @@
 
 import React, { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import presets from '@/data/presets.json';
+import { STATIC_MATCHUPS } from '@/data/matchups';
 import { BattleScreen } from '@/components/battle/BattleScreen';
 
 function DevBattleContent() {
   const searchParams = useSearchParams();
   const roundParam = Number(searchParams.get('round')) || 1;
   const targetPreset =
-    presets.find((p) => p.round === roundParam) || presets[0];
+    STATIC_MATCHUPS.find((p) => p.round === roundParam) || STATIC_MATCHUPS[0];
 
   return (
     <div className="w-full min-h-screen bg-bg flex flex-col justify-center items-center">

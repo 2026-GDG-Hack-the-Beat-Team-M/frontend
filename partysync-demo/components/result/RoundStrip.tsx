@@ -18,7 +18,7 @@ export function RoundStrip({ roundHistory }: RoundStripProps) {
             className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-2 border border-white/10 text-xs font-en font-bold"
           >
             <span>R{item.round}</span>
-            <span>{item.didIWin ? '✅' : '❌'}</span>
+            <span>{item.myTrack === null ? '➖' : item.didIWin ? '✅' : '❌'}</span>
           </div>
         ))}
       </div>

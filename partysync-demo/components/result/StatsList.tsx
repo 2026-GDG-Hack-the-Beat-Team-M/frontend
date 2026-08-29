@@ -34,7 +34,7 @@ export function StatsList({ summary }: StatsListProps) {
         <div className="p-3.5 rounded-2xl bg-surface-1 border border-white/10 flex items-center justify-between">
           <div>
             <span className="text-[10px] font-semibold text-ink-dim font-kr">
-              🎧 나의 최애 드랍곡
+              🎧 나의 최애 드랍곡 (내가 고른 곡 중)
             </span>
             <h4 className="text-xs font-bold text-ink truncate font-kr mt-0.5">
               {summary.favoriteDrop.title}

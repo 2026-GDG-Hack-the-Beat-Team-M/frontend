@@ -20,10 +20,19 @@ export function VoteResultSummary({ result }: VoteResultSummaryProps) {
       <div className="text-xs font-bold font-kr">
         {result.didIWin ? (
           <span className="text-neon-green">🙌 내가 고른 곡이 이겼어요!</span>
-        ) : (
+        ) : result.myTrack ? (
           <span className="text-ink-dim">😢 아쉽게 패배했어요</span>
+        ) : (
+          <span className="text-ink-dim">이번 라운드는 곡을 고르지 않았어요</span>
         )}
       </div>
+
+      {/* 내 선택은 승패와 무관하게 끝까지 유지되고, 취향 분석의 기준이 된다 */}
+      {result.myTrack && !result.didIWin && (
+        <div className="text-[10px] text-ink-muted font-kr pt-0.5">
+          내 선택 「{result.myTrack.title}」은 취향 결과에 그대로 반영됩니다
+        </div>
+      )}
     </div>
   );
 }

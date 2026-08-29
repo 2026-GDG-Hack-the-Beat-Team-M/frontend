@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="g_youngk" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7F00FF"/>
+      <stop offset="100%" stop-color="#E100FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="500" height="500" fill="#12041C"/>
+  <rect x="70" y="70" width="360" height="360" rx="30" fill="url(#g_youngk)" opacity="0.85"/>
+  <rect x="100" y="100" width="300" height="300" rx="20" fill="#1A0728"/>
+  <text x="250" y="210" font-size="60" text-anchor="middle">🚪</text>
+  <text x="250" y="270" font-size="30" font-weight="900" fill="#FFFFFF" text-anchor="middle" font-family="sans-serif">Shut The Door</text>
+  <text x="250" y="310" font-size="22" font-weight="bold" fill="#E100FF" text-anchor="middle" font-family="sans-serif">YOUNG K</text>
+</svg>
