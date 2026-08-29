@@ -1,30 +1,16 @@
-import React from 'react';
+const BARS = [40, 72, 55, 88, 62, 100, 48, 82, 58, 74, 44, 66];
 
 export function Visualizer() {
-  const bars = [
-    { height: '60%', delay: '0s' },
-    { height: '90%', delay: '0.2s' },
-    { height: '40%', delay: '0.4s' },
-    { height: '100%', delay: '0.1s' },
-    { height: '75%', delay: '0.3s' },
-    { height: '50%', delay: '0.5s' },
-    { height: '85%', delay: '0.25s' },
-    { height: '65%', delay: '0.15s' },
-  ];
-
   return (
-    <div className="flex items-end justify-center gap-1.5 h-6 py-1">
-      {bars.map((bar, i) => (
-        <div
-          key={i}
-          className="w-1 bg-accent rounded-full animate-pulse"
-          style={{
-            height: bar.height,
-            animationDuration: '0.8s',
-            animationDelay: bar.delay,
-          }}
-        />
+    <div className="flex h-7 items-center justify-center gap-1" aria-hidden="true">
+      {BARS.map((height, index) => (
+        <span key={index} className="nowplaying-eq block w-1 rounded-full bg-gradient-to-t from-accent to-accent-light" style={{ height: `${height}%`, animationDelay: `${index * -90}ms`, animationDuration: `${700 + (index % 4) * 130}ms` }} />
       ))}
+      <style>{`
+        .nowplaying-eq { transform-origin: center; animation: equalize ease-in-out infinite alternate; }
+        @keyframes equalize { from { transform: scaleY(.35); opacity: .55; } to { transform: scaleY(1); opacity: 1; } }
+        @media (prefers-reduced-motion: reduce) { .nowplaying-eq { animation: none; opacity: .8; } }
+      `}</style>
     </div>
   );
 }
