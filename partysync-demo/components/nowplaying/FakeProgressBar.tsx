@@ -1,39 +1,35 @@
-import React, { useEffect, useState } from 'react';
+'use client';
 
-export function FakeProgressBar() {
-  const [seconds, setSeconds] = useState(72); // Starts at 1:12
-  const totalSeconds = 228; // 3:48
+import { useEffect, useState } from 'react';
+
+interface FakeProgressBarProps { durationSec?: number; startAtSec?: number; }
+
+const formatTime = (seconds: number) => {
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  return `${Math.floor(safeSeconds / 60)}:${String(safeSeconds % 60).padStart(2, '0')}`;
+};
+
+export function FakeProgressBar({ durationSec = 228, startAtSec = 72 }: FakeProgressBarProps) {
+  const duration = Math.max(1, durationSec);
+  const initialPosition = Math.min(Math.max(0, startAtSec), duration);
+  const [position, setPosition] = useState(initialPosition);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setSeconds((prev) => (prev >= totalSeconds ? 0 : prev + 1));
-    }, 1000);
+    const startedAt = Date.now();
+    const update = () => setPosition(Math.min(duration, initialPosition + (Date.now() - startedAt) / 1000));
+    const timer = window.setInterval(update, 250);
+    return () => window.clearInterval(timer);
+  }, [duration, initialPosition]);
 
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatTime = (sec: number) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const progressPercent = (seconds / totalSeconds) * 100;
+  const progressPercent = Math.min(100, (position / duration) * 100);
 
   return (
-    <div className="w-full space-y-1.5 py-1">
-      {/* Progress Track */}
-      <div className="relative w-full h-1.5 rounded-full bg-surface-1 overflow-hidden">
-        <div
-          className="h-full bg-gradient-to-r from-accent to-accent-light rounded-full transition-all duration-1000"
-          style={{ width: `${progressPercent}%` }}
-        />
+    <div className="w-full space-y-2" aria-label={`재생 위치 ${formatTime(position)}, 전체 ${formatTime(duration)}`}>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+        <div className="h-full rounded-full bg-gradient-to-r from-accent to-accent-light transition-[width] duration-300 ease-linear motion-reduce:transition-none" style={{ width: `${progressPercent}%` }} />
       </div>
-
-      {/* Timestamps */}
-      <div className="flex justify-between items-center text-[10px] font-en font-semibold text-ink-dim px-0.5">
-        <span>{formatTime(seconds)}</span>
-        <span>3:48</span>
+      <div className="flex items-center justify-between px-0.5 font-en text-[11px] font-semibold tabular-nums text-ink-dim">
+        <span>{formatTime(position)}</span><span>{formatTime(duration)}</span>
       </div>
     </div>
   );

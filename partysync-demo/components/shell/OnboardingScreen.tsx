@@ -1,5 +1,5 @@
 import React from 'react';
-import Image from 'next/image';
+import { TrackArtwork } from '@/components/ui/TrackArtwork';
 import { Screen } from '@/components/ui/Screen';
 import { ALL_TRACKS } from '@/data/tracks';
 import { BATTLE_CONFIG } from '@/lib/battle/battleConfig';
@@ -41,12 +41,7 @@ export function OnboardingScreen({ onJoin }: OnboardingScreenProps) {
               key={track.id}
               className="relative aspect-square rounded-xl overflow-hidden border border-white/10 bg-surface-1"
             >
-              <Image
-                src={track.artwork_url}
-                alt={track.title}
-                fill
-                className="object-cover opacity-80"
-              />
+              <TrackArtwork track={track} className="opacity-80" />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-1.5">
                 <p className="text-[9px] font-bold text-ink truncate font-kr">
                   {track.title}

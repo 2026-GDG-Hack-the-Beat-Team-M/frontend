@@ -1,190 +1,317 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { RoundResult, ReactionType } from '@/types';
-import { BATTLE_CONFIG } from '@/lib/battle/battleConfig';
-import { BubbleEngine, BubbleItem } from '@/lib/nowplaying/bubbleEngine';
-import { ReactionSimulator } from '@/lib/nowplaying/reactionSimulator';
-import { Screen } from '@/components/ui/Screen';
-import { RoundIndicator } from '@/components/shell/RoundIndicator';
-import { AlbumArt } from './AlbumArt';
-import { FakeProgressBar } from './FakeProgressBar';
-import { Visualizer } from './Visualizer';
-import { VoteResultSummary } from './VoteResultSummary';
-import { ReactionButtons } from './ReactionButtons';
-import { TagPicker } from './TagPicker';
-import { ReactionRateBar } from './ReactionRateBar';
-import { BubbleLayer } from './BubbleLayer';
-import { NicknameToast } from './NicknameToast';
-import { TagTicker } from './TagTicker';
-import { NextRoundCta } from './NextRoundCta';
+'use client';
 
-interface NowPlayingScreenProps {
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AlbumArt } from './AlbumArt';
+import { BubbleLayer, type BubbleItem } from './BubbleLayer';
+import { FakeProgressBar } from './FakeProgressBar';
+import { NextRoundCta } from './NextRoundCta';
+import { NicknameToast, type ReactionToast } from './NicknameToast';
+import { ReactionButtons } from './ReactionButtons';
+import { ReactionRateBar } from './ReactionRateBar';
+import { TagPicker } from './TagPicker';
+import { TagTicker } from './TagTicker';
+import { Visualizer } from './Visualizer';
+import { BATTLE_CONFIG } from '@/lib/battle/battleConfig';
+import { VoteResultSummary } from './VoteResultSummary';
+
+export type Sentiment = 'good' | 'so_so' | 'bad';
+
+export interface NowPlayingTrack {
+  id: string;
+  title: string;
+  artist: string;
+  artworkUrl?: string;
+  genreTags: string[];
+  durationSec?: number;
+}
+
+export interface ReactionCounts {
+  good: number;
+  soSo: number;
+  bad: number;
+}
+
+export interface NowPlayingScreenProps {
+  round: number;
+  totalRounds: number;
+  winnerTrack: NowPlayingTrack;
+  scoreA: number;
+  scoreB: number;
+  winnerScore?: number;
+  userPickedWinner: boolean;
+  /** 사용자가 이 라운드에서 고른 곡 제목 (기권 시 null) */
+  myPickTitle?: string | null;
+  initialReactionCounts?: ReactionCounts;
+  myReaction?: Sentiment | null;
+  myTags?: string[];
+  onReactionChange?: (reaction: Sentiment) => void;
+  onTagsChange?: (tags: string[]) => void;
+  onNext?: () => void | Promise<void>;
+}
+
+type LegacyReaction = 'good' | 'soso' | 'bad';
+interface LegacyTrack {
+  id: string; title: string; artist: string; artwork_url: string;
+  genre_tags: string[]; basePositivity?: number;
+}
+interface LegacyResult {
+  winner: LegacyTrack; winnerSide: 'A' | 'B'; didIWin: boolean;
+  scoreA: number; scoreB: number;
+  /** 사용자가 이 라운드에서 실제로 고른 곡 (기권 시 null) */
+  myTrack?: LegacyTrack | null;
+}
+interface LegacyNowPlayingScreenProps {
   currentRound: number;
-  lastRoundResult: RoundResult;
-  onSaveReaction: (reaction: ReactionType, tags: string[], isLiked: boolean) => void;
+  lastRoundResult: LegacyResult;
+  onSaveReaction: (reaction: LegacyReaction, tags: string[], isLiked: boolean) => void;
   onNextRound: () => void;
 }
 
-export function NowPlayingScreen({
-  currentRound,
-  lastRoundResult,
-  onSaveReaction,
-  onNextRound,
-}: NowPlayingScreenProps) {
+type CompatibleNowPlayingProps = NowPlayingScreenProps | LegacyNowPlayingScreenProps;
+
+interface NormalizedProps {
+  round: number;
+  totalRounds: number;
+  track: NowPlayingTrack;
+  scoreA: number;
+  scoreB: number;
+  winnerScore?: number;
+  userPickedWinner: boolean;
+  myPickTitle: string | null;
+  initialCounts?: ReactionCounts;
+  initialReaction: Sentiment | null;
+  initialTags: string[];
+  onReaction?: (reaction: Sentiment) => void;
+  onTags?: (tags: string[]) => void;
+  onNext?: () => void | Promise<void>;
+  legacySave?: (reaction: LegacyReaction, tags: string[], isLiked: boolean) => void;
+}
+
+const DEFAULT_TAGS = ['#드랍이미쳤다', '#떼창각', '#베이스터짐', '#비트가좋아요', '#감성미쳤다', '#조금루즈함'];
+const EMPTY_TAGS: string[] = [];
+const NICKNAMES = [
+  'Yuna_92', 'minji.zip', 'clubkid17', 'noah.wav', 'seoulafterdark', 'NeonFox',
+  'BassHunter_KR', 'Sora_Vibe', 'MidnightGroove', 'TechnoCat', 'HypeBoy_01', 'Rave_Princess',
+  'DropMaster', 'VinylJunkie', 'SynthWave_99', 'PartyGoer_Kai', 'Flora_Beats', 'VibeCheck_Jin',
+  'BPM_Chaser', 'Echo_Seeker', 'Luna_House', 'RetroKing', 'Floor_Ripper', 'Dopamine_Addict',
+  'Subwoofer_Love', 'Singalong_Dan', 'ClubKID', 'SoundWave_Leo', 'PartyMonster', 'GrooveLover_Min',
+  'DropSurvivor', 'Cyber_Dancer',
+];
+const EMOJI: Record<Sentiment, string> = { good: '🔥', so_so: '😐', bad: '🥱' };
+
+const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+const toLegacyReaction = (reaction: Sentiment): LegacyReaction => reaction === 'so_so' ? 'soso' : reaction;
+
+function normalizeProps(props: CompatibleNowPlayingProps): NormalizedProps {
+  if ('winnerTrack' in props) {
+    return {
+      round: props.round,
+      totalRounds: props.totalRounds,
+      track: props.winnerTrack,
+      scoreA: props.scoreA,
+      scoreB: props.scoreB,
+      winnerScore: props.winnerScore,
+      userPickedWinner: props.userPickedWinner,
+      myPickTitle: props.myPickTitle ?? null,
+      initialCounts: props.initialReactionCounts,
+      initialReaction: props.myReaction ?? null,
+      initialTags: props.myTags ?? EMPTY_TAGS,
+      onReaction: props.onReactionChange,
+      onTags: props.onTagsChange,
+      onNext: props.onNext,
+      legacySave: undefined,
+    };
+  }
+
+  const { lastRoundResult: result } = props;
+  return {
+    round: props.currentRound,
+    totalRounds: BATTLE_CONFIG.ROUND_TOTAL,
+    track: {
+      id: result.winner.id,
+      title: result.winner.title,
+      artist: result.winner.artist,
+      artworkUrl: result.winner.artwork_url,
+      genreTags: result.winner.genre_tags,
+    } satisfies NowPlayingTrack,
+    scoreA: result.scoreA,
+    scoreB: result.scoreB,
+    winnerScore: result.winnerSide === 'A' ? result.scoreA : result.scoreB,
+    userPickedWinner: result.didIWin,
+    myPickTitle: result.myTrack?.title ?? null,
+    initialCounts: undefined,
+    initialReaction: null,
+    initialTags: EMPTY_TAGS,
+    onReaction: undefined,
+    onTags: undefined,
+    onNext: props.onNextRound,
+    legacySave: props.onSaveReaction,
+  };
+}
+
+export function NowPlayingScreen(props: CompatibleNowPlayingProps) {
+  const model = normalizeProps(props);
+  return <NowPlayingContent key={model.track.id} model={model} />;
+}
+
+function NowPlayingContent({ model }: { model: NormalizedProps }) {
+  const {
+    round, totalRounds, track, scoreA, scoreB, winnerScore, userPickedWinner, myPickTitle,
+    initialCounts, initialReaction, initialTags, onReaction, onTags, onNext, legacySave,
+  } = model;
+  const tags = track.genreTags.length > 0 ? track.genreTags : DEFAULT_TAGS;
+
+  const [counts, setCounts] = useState<ReactionCounts>(initialCounts ?? { good: 88, soSo: 20, bad: 7 });
+  const [selectedReaction, setSelectedReaction] = useState<Sentiment | null>(initialReaction);
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialTags.slice(0, 3));
   const [bubbles, setBubbles] = useState<BubbleItem[]>([]);
-  const [toast, setToast] = useState<{ nickname: string; emoji: string } | null>(null);
-  const [selectedReaction, setSelectedReaction] = useState<ReactionType | null>(null);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [isLiked, setIsLiked] = useState(false);
+  const [toast, setToast] = useState<ReactionToast | null>(null);
 
-  // Reaction tallies starting with seed
-  const [goodCount, setGoodCount] = useState(72);
-  const [sosoCount, setSosoCount] = useState(18);
-  const [badCount, setBadCount] = useState(6);
+  const nextBubbleId = useRef(0);
+  const bubbleTimers = useRef(new Set<number>());
 
-  const bubbleEngineRef = useRef<BubbleEngine | null>(null);
-  const reactionSimulatorRef = useRef<ReactionSimulator | null>(null);
+  const spawnBubble = useCallback((reaction: Sentiment, isUser = false) => {
+    const durationMs = isUser ? 2200 : randomInt(2400, 3400);
+    const id = ++nextBubbleId.current;
+    const bubble: BubbleItem = {
+      id,
+      emoji: EMOJI[reaction],
+      leftPercent: isUser ? randomInt(42, 58) : randomInt(8, 88),
+      sizePx: isUser ? randomInt(42, 52) : randomInt(24, 40),
+      durationMs,
+      driftPx: randomInt(-52, 52),
+      isUser,
+    };
+    setBubbles((current) => [...current.slice(-19), bubble]);
+    const timer = window.setTimeout(() => {
+      setBubbles((current) => current.filter((item) => item.id !== id));
+      bubbleTimers.current.delete(timer);
+    }, durationMs + 100);
+    bubbleTimers.current.add(timer);
+  }, []);
 
   useEffect(() => {
-    // 1. Initialize Bubble Engine
-    bubbleEngineRef.current = new BubbleEngine((updatedBubbles) => {
-      setBubbles(updatedBubbles);
-    });
+    if (initialCounts) return;
+    const timer = window.setTimeout(() => {
+      setCounts({ good: randomInt(60, 120), soSo: randomInt(10, 30), bad: randomInt(2, 12) });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [initialCounts]);
 
-    // 2. Initialize and start Reaction Simulator
-    reactionSimulatorRef.current = new ReactionSimulator(
-      {
-        onReaction: (rx, emoji) => {
-          if (rx === 'good') setGoodCount((c) => c + 1);
-          if (rx === 'soso') setSosoCount((c) => c + 1);
-          if (rx === 'bad') setBadCount((c) => c + 1);
+  useEffect(() => {
+    let active = true;
+    let reactionTimer: number | null = null;
+    let toastTimer: number | null = null;
+    let toastHideTimer: number | null = null;
+    const startedAt = Date.now();
+    const activeBubbleTimers = bubbleTimers.current;
 
-          bubbleEngineRef.current?.spawn(emoji, false);
-        },
-        onToast: (nickname, emoji) => {
-          setToast({ nickname, emoji });
-          setTimeout(() => setToast(null), 2500);
-        },
-      },
-      lastRoundResult.winner.basePositivity || 0.70
-    );
-    reactionSimulatorRef.current.start();
-
-    return () => {
-      reactionSimulatorRef.current?.stop();
+    const scheduleReaction = () => {
+      const elapsed = Date.now() - startedAt;
+      if (!active || elapsed >= 60000) return;
+      const slowdown = elapsed <= 15000 ? 1 : Math.min(4, 1 + (elapsed - 15000) / 15000);
+      reactionTimer = window.setTimeout(() => {
+        if (!active) return;
+        const roll = Math.random();
+        const reaction: Sentiment = roll < .7 ? 'good' : roll < .92 ? 'so_so' : 'bad';
+        setCounts((current) => ({
+          ...current,
+          good: current.good + (reaction === 'good' ? 1 : 0),
+          soSo: current.soSo + (reaction === 'so_so' ? 1 : 0),
+          bad: current.bad + (reaction === 'bad' ? 1 : 0),
+        }));
+        spawnBubble(reaction);
+        scheduleReaction();
+      }, randomInt(Math.round(300 * slowdown), Math.round(900 * slowdown)));
     };
-  }, [lastRoundResult]);
 
-  // Handle User Reaction Click
-  const handleSelectReaction = (rx: ReactionType) => {
-    setSelectedReaction(rx);
-    if (rx === 'good') setGoodCount((c) => c + 1);
-    if (rx === 'soso') setSosoCount((c) => c + 1);
-    if (rx === 'bad') setBadCount((c) => c + 1);
+    const scheduleToast = () => {
+      if (!active || Date.now() - startedAt >= 60000) return;
+      toastTimer = window.setTimeout(() => {
+        if (!active) return;
+        const roll = Math.random();
+        const reaction: Sentiment = roll < .7 ? 'good' : roll < .92 ? 'so_so' : 'bad';
+        setToast({ id: Date.now(), nickname: NICKNAMES[randomInt(0, NICKNAMES.length - 1)], emoji: EMOJI[reaction] });
+        if (toastHideTimer !== null) window.clearTimeout(toastHideTimer);
+        toastHideTimer = window.setTimeout(() => { if (active) setToast(null); }, 2200);
+        scheduleToast();
+      }, randomInt(2000, 4000));
+    };
 
-    const emoji = rx === 'good' ? '🔥' : rx === 'soso' ? '😐' : '🥱';
-    bubbleEngineRef.current?.spawn(emoji, true);
-    onSaveReaction(rx, selectedTags, isLiked);
+    scheduleReaction();
+    scheduleToast();
+    return () => {
+      active = false;
+      if (reactionTimer !== null) window.clearTimeout(reactionTimer);
+      if (toastTimer !== null) window.clearTimeout(toastTimer);
+      if (toastHideTimer !== null) window.clearTimeout(toastHideTimer);
+      activeBubbleTimers.forEach((timer) => window.clearTimeout(timer));
+      activeBubbleTimers.clear();
+    };
+  }, [spawnBubble]);
+
+  const handleReaction = (reaction: Sentiment) => {
+    if (reaction === selectedReaction) return;
+    setCounts((current) => {
+      const next = { ...current };
+      if (selectedReaction === 'good') next.good = Math.max(0, next.good - 1);
+      if (selectedReaction === 'so_so') next.soSo = Math.max(0, next.soSo - 1);
+      if (selectedReaction === 'bad') next.bad = Math.max(0, next.bad - 1);
+      if (reaction === 'good') next.good += 1;
+      if (reaction === 'so_so') next.soSo += 1;
+      if (reaction === 'bad') next.bad += 1;
+      return next;
+    });
+    setSelectedReaction(reaction);
+    spawnBubble(reaction, true);
+    onReaction?.(reaction);
+    legacySave?.(toLegacyReaction(reaction), selectedTags, false);
   };
 
-  // Handle Tag Toggle (max 3 tags)
-  const handleToggleTag = (tag: string) => {
-    let updated: string[];
-    if (selectedTags.includes(tag)) {
-      updated = selectedTags.filter((t) => t !== tag);
-    } else {
-      if (selectedTags.length >= 3) {
-        updated = [...selectedTags.slice(1), tag];
-      } else {
-        updated = [...selectedTags, tag];
-      }
-    }
+  const handleTag = (tag: string) => {
+    const updated = selectedTags.includes(tag)
+      ? selectedTags.filter((selected) => selected !== tag)
+      : [...selectedTags, tag];
     setSelectedTags(updated);
-    if (selectedReaction) {
-      onSaveReaction(selectedReaction, updated, isLiked);
-    }
+    onTags?.(updated);
+    if (selectedReaction) legacySave?.(toLegacyReaction(selectedReaction), updated, false);
   };
-
-  // Handle Like Toggle
-  const handleToggleLike = () => {
-    const nextLiked = !isLiked;
-    setIsLiked(nextLiked);
-    if (selectedReaction) {
-      onSaveReaction(selectedReaction, selectedTags, nextLiked);
-    }
-  };
-
-  const isLastRound = currentRound >= BATTLE_CONFIG.ROUND_TOTAL;
 
   return (
-    <Screen>
-      {/* Floating Bubbles Layer */}
+    <main className="relative mx-auto min-h-svh w-full max-w-md overflow-x-hidden bg-bg px-4 pb-2 pt-[max(1rem,env(safe-area-inset-top))] font-kr text-ink">
+      <div aria-hidden="true" className="pointer-events-none absolute -top-32 left-1/2 h-[340px] w-[420px] -translate-x-1/2 rounded-full bg-accent/30 opacity-40 blur-[90px]" />
       <BubbleLayer bubbles={bubbles} />
-
-      {/* Nickname Toast Notification */}
       <NicknameToast toast={toast} />
 
-      {/* Header */}
-      <div className="flex items-center justify-between pb-1">
-        <RoundIndicator currentRound={currentRound} />
-        <div className="flex items-center gap-1.5 text-xs text-accent font-bold font-en">
-          <span className="w-2 h-2 rounded-full bg-accent animate-ping" />
-          NOW PLAYING
-        </div>
-      </div>
+      <div className="relative z-10">
+        <header className="flex items-center justify-between gap-3">
+          <p className="font-en text-xs font-black tracking-[.18em] text-ink-dim">ROUND {round} / {totalRounds}</p>
+          <p className="flex items-center gap-1.5 text-xs font-black tracking-wider text-accent-light"><span aria-hidden="true">●</span> NOW PLAYING</p>
+        </header>
 
-      {/* Main Artwork */}
-      <AlbumArt track={lastRoundResult.winner} />
-
-      {/* Track Title & Artist & Like Button */}
-      <div className="flex items-center justify-between px-1 py-1">
-        <div className="min-w-0 flex-1 pr-2">
-          <h2 className="text-lg font-black text-ink truncate font-kr">
-            {lastRoundResult.winner.title}
-          </h2>
-          <p className="text-xs text-ink-dim truncate font-kr">
-            {lastRoundResult.winner.artist}
-          </p>
+        <div className="mt-3 text-center">
+          <p className="text-sm font-black tracking-[.16em] text-neon-yellow">🏆 WINNER</p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleToggleLike}
-          className="p-2.5 rounded-full bg-surface-1 border border-white/10 text-lg hover:scale-110 active:scale-95 transition-all text-accent"
-          title="곡 좋아요"
-        >
-          {isLiked ? '❤️' : '🤍'}
-        </button>
+        <AlbumArt title={track.title} artist={track.artist} artworkUrl={track.artworkUrl} />
+
+        <section className="mb-3 text-center">
+          <h1 className="truncate text-xl font-black tracking-tight text-ink">{track.title}</h1>
+          <p className="mt-0.5 truncate text-sm text-ink-dim">{track.artist}</p>
+        </section>
+
+        <div className="space-y-2 px-1"><Visualizer /><FakeProgressBar key={`${track.id}-${track.durationSec ?? 228}`} durationSec={track.durationSec} /></div>
+        <VoteResultSummary scoreA={scoreA} scoreB={scoreB} winnerScore={winnerScore} userPickedWinner={userPickedWinner} myPickTitle={myPickTitle} />
+
+        <section className="space-y-4 rounded-3xl border border-white/10 bg-surface-2/55 p-3 backdrop-blur-sm">
+          <ReactionButtons selectedReaction={selectedReaction} onSelectReaction={handleReaction} />
+          <TagPicker tags={tags} selectedTags={selectedTags} onToggleTag={handleTag} />
+          <ReactionRateBar goodCount={counts.good} soSoCount={counts.soSo} badCount={counts.bad} />
+        </section>
+
+        <div className="mt-4"><TagTicker tags={tags} /></div>
+        <NextRoundCta isLastRound={round >= totalRounds} onNext={onNext} />
       </div>
-
-      {/* Fake Progress Bar & Visualizer */}
-      <FakeProgressBar />
-      <Visualizer />
-
-      {/* Battle Victory Stat */}
-      <VoteResultSummary result={lastRoundResult} />
-
-      {/* Live Reactions Section */}
-      <div className="space-y-2 py-1">
-        <ReactionButtons
-          selectedReaction={selectedReaction}
-          onSelectReaction={handleSelectReaction}
-        />
-        <TagPicker
-          selectedTags={selectedTags}
-          onToggleTag={handleToggleTag}
-        />
-        <ReactionRateBar
-          goodCount={goodCount}
-          sosoCount={sosoCount}
-          badCount={badCount}
-        />
-      </div>
-
-      {/* Flowing Tag Ticker */}
-      <TagTicker />
-
-      {/* Sticky Bottom CTA */}
-      <NextRoundCta isLastRound={isLastRound} onNext={onNextRound} />
-    </Screen>
+    </main>
   );
 }

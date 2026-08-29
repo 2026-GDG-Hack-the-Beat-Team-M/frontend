@@ -1,5 +1,5 @@
 import React from 'react';
-import Image from 'next/image';
+import { TrackArtwork } from '@/components/ui/TrackArtwork';
 import { clsx } from 'clsx';
 import { SelectedTrackItem } from '@/types';
 
@@ -66,12 +66,7 @@ export function SelectedTracksSummary({
             >
               {/* Round Badge & Artwork */}
               <div className="relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-surface-1 border border-white/10">
-                <Image
-                  src={item.track.artwork_url}
-                  alt={item.track.title}
-                  fill
-                  className="object-cover"
-                />
+                <TrackArtwork track={item.track} />
                 <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md text-[9px] font-black font-en text-accent">
                   R{item.round}
                 </div>

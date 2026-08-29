@@ -26,6 +26,8 @@ export interface Track {
   title: string;
   artist: string;
   artwork_url: string;
+  /** artwork_url 로드 실패 시 사용할 로컬 이미지 */
+  artwork_fallback?: string;
   /** 장르 분포 계산의 단위가 되는 대표 장르 (뱃지 매핑 키) */
   primary_genre: string;
   /** 화면 표시용 세부 태그 */
