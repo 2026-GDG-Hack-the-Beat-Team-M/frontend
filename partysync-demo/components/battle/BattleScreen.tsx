@@ -22,16 +22,16 @@ interface BattleScreenProps {
 }
 
 const TRACK_POOL: Track[] = [
-  { id: 'olivia-dean-man-i-need', title: 'Man I Need', artist: 'Olivia Dean', artwork_url: '/artwork/r1a.svg', genre_tags: ['POP', 'SOUL'], basePositivity: 0.82 },
-  { id: 'ed-sheeran-photograph', title: 'Photograph', artist: 'Ed Sheeran', artwork_url: '/artwork/r1b.svg', genre_tags: ['POP', 'BALLAD'], basePositivity: 0.79 },
-  { id: 'rescene-love-attack', title: 'Love Attack', artist: '리센느', artwork_url: '/artwork/r2a.svg', genre_tags: ['K-POP', 'DANCE'], basePositivity: 0.78 },
-  { id: 'young-k-shut-the-door', title: 'Shut The Door', artist: 'YOUNG K', artwork_url: '/artwork/r2b.svg', genre_tags: ['K-ROCK', 'POP'], basePositivity: 0.76 },
-  { id: 'dj-khaled-all-i-do-is-win', title: 'All I Do Is Win', artist: 'DJ Khaled', artwork_url: '/artwork/r3a.svg', genre_tags: ['HIP-HOP', 'PARTY'], basePositivity: 0.86 },
-  { id: 'ariana-grande-break-free', title: 'Break Free', artist: 'Ariana Grande', artwork_url: '/artwork/r3b.svg', genre_tags: ['POP', 'EDM'], basePositivity: 0.84 },
-  { id: 'newjeans-how-sweet', title: 'How Sweet', artist: 'NewJeans', artwork_url: '/artwork/r1a.svg', genre_tags: ['K-POP', 'DANCE'], basePositivity: 0.83 },
-  { id: 'urban-zakapa-thursday-night', title: '목요일 밤', artist: '어반자카파, 빈지노', artwork_url: '/artwork/r1b.svg', genre_tags: ['R&B', 'HIP-HOP'], basePositivity: 0.8 },
-  { id: 'jazzyfact-waste-of-time', title: '아까워', artist: '재지팩트', artwork_url: '/artwork/r2a.svg', genre_tags: ['HIP-HOP', 'R&B'], basePositivity: 0.77 },
-  { id: 'epik-high-umbrella', title: '우산', artist: '에픽하이', artwork_url: '/artwork/r2b.svg', genre_tags: ['HIP-HOP', 'BALLAD'], basePositivity: 0.81 },
+  { id: 'olivia-dean-man-i-need', title: 'Man I Need', artist: 'Olivia Dean', artwork_url: 'https://assets.crownnote.com/s3fs-public/2025-09/Man%20I%20Need.jpg', genre_tags: ['POP', 'SOUL'], basePositivity: 0.82 },
+  { id: 'ed-sheeran-photograph', title: 'Photograph', artist: 'Ed Sheeran', artwork_url: 'https://is1-ssl.mzstatic.com/image/thumb/Features115/v4/65/fb/84/65fb8432-f539-d67d-0670-b1358d16e5af/contsched.zkbwdtfj.jpg/600x600bb.jpg', genre_tags: ['POP', 'BALLAD'], basePositivity: 0.79 },
+  { id: 'rescene-love-attack', title: 'Love Attack', artist: '리센느', artwork_url: 'https://i1.sndcdn.com/artworks-9a8zTyDwYnaHJuRh-jxyx4A-t1080x1080.jpg', genre_tags: ['K-POP', 'DANCE'], basePositivity: 0.78 },
+  { id: 'young-k-shut-the-door', title: 'Shut The Door', artist: 'YOUNG K', artwork_url: 'https://pimg.mk.co.kr/news/cms/202309/07/news-p.v1.20230907.9025df8fdb38463587d52f6947496d1c.jpg', genre_tags: ['K-ROCK', 'POP'], basePositivity: 0.76 },
+  { id: 'dj-khaled-all-i-do-is-win', title: 'All I Do Is Win', artist: 'DJ Khaled', artwork_url: 'https://static.wixstatic.com/media/93eb5f_4a7f0b6373b245f1975ca07e7e712714~mv2.jpg/v1/fill/w_1000,h_1000,al_c,q_85/93eb5f_4a7f0b6373b245f1975ca07e7e712714~mv2.jpg', genre_tags: ['HIP-HOP', 'PARTY'], basePositivity: 0.86 },
+  { id: 'ariana-grande-break-free', title: 'Break Free', artist: 'Ariana Grande', artwork_url: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/3d/7b/39/3d7b392e-38c4-bc3c-6a12-a7acd21fcc3c/24UMGIM88680.rgb.jpg/600x600bf-60.jpg', genre_tags: ['POP', 'EDM'], basePositivity: 0.84 },
+  { id: 'newjeans-how-sweet', title: 'How Sweet', artist: 'NewJeans', artwork_url: 'https://assets.crownnote.com/s3fs-public/2024-04/nujeansd.png', genre_tags: ['K-POP', 'DANCE'], basePositivity: 0.83 },
+  { id: 'urban-zakapa-thursday-night', title: '목요일 밤', artist: '어반자카파, 빈지노', artwork_url: 'https://www.kpopn.com/upload/old-post-images/2016/08/160822urbanzakapanbeenzino.jpg', genre_tags: ['R&B', 'HIP-HOP'], basePositivity: 0.8 },
+  { id: 'jazzyfact-waste-of-time', title: '아까워', artist: '재지팩트', artwork_url: 'https://i.ytimg.com/vi/ppudgIu2TaM/maxresdefault.jpg', genre_tags: ['HIP-HOP', 'R&B'], basePositivity: 0.77 },
+  { id: 'epik-high-umbrella', title: '우산', artist: '에픽하이', artwork_url: 'https://i.scdn.co/image/ab67616d0000b27338e8263b51bec04b91143b76', genre_tags: ['HIP-HOP', 'BALLAD'], basePositivity: 0.81 },
 ];
 
 function createRandomPreset(round: number): BattlePreset {

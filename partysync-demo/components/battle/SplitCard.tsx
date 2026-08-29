@@ -54,7 +54,17 @@ export function SplitCard({
       >
         <div className="absolute h-12 w-12 rounded-full border-[10px] border-black/25 bg-black/10 shadow-inner" />
         <span className="relative z-10 font-en text-[11px] font-black tracking-widest text-white/90">{initials}</span>
-        <div className="absolute inset-0 bg-gradient-to-tr from-black/30 via-transparent to-white/20" />
+        <img
+          src={track.artwork_url}
+          alt={`${track.artist} - ${track.title} 앨범 커버`}
+          className="absolute inset-0 z-10 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          loading="eager"
+          referrerPolicy="no-referrer"
+          onError={(event) => {
+            event.currentTarget.style.display = 'none';
+          }}
+        />
+        <div className="absolute inset-0 z-20 bg-gradient-to-tr from-black/20 via-transparent to-white/10" />
         <div
           className={clsx(
             'absolute top-1 left-1 px-1.5 py-0.5 rounded text-[10px] font-black font-en',
