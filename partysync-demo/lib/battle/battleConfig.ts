@@ -1,0 +1,19 @@
+export const BATTLE_CONFIG = {
+  ROUND_TOTAL: 3,
+  BATTLE_DURATION: 20, // seconds
+  PREROLL_DURATION: 3, // seconds for round 2+
+  TAP_LIMIT: 100, // max user taps per battle
+  TAP_WEIGHT_MIN: 1,
+  TAP_WEIGHT_MAX: 3,
+  TICK_INTERVAL_MIN: 200, // ms
+  TICK_INTERVAL_MAX: 400, // ms
+  DELTA_MIN: 1,
+  DELTA_MAX: 15,
+  SEED_TOTAL_MIN: 300,
+  SEED_TOTAL_MAX: 600,
+  SEED_RATIO_MIN: 0.45,
+  SEED_RATIO_MAX: 0.55,
+  GAUGE_CLAMP_MIN: 0.15,
+  GAUGE_CLAMP_MAX: 0.85,
+  CRITICAL_TIME_THRESHOLD: 5, // last 5 seconds
+} as const;

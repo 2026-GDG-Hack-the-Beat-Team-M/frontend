@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="g2a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF9900"/>
+      <stop offset="100%" stop-color="#FF0077"/>
+    </linearGradient>
+  </defs>
+  <rect width="500" height="500" fill="#140D05"/>
+  <rect x="70" y="110" width="360" height="280" rx="20" fill="url(#g2a)" opacity="0.9"/>
+  <rect x="110" y="150" width="280" height="150" rx="10" fill="#20150A"/>
+  <circle cx="180" cy="225" r="30" fill="#FF9900"/>
+  <circle cx="320" cy="225" r="30" fill="#FF9900"/>
+  <text x="250" y="340" font-size="28" font-weight="bold" fill="#FFFFFF" text-anchor="middle" font-family="sans-serif">2000s RETRO</text>
+</svg>

@@ -1,0 +1,65 @@
+[
+  {
+    "round": 1,
+    "theme_tag": "장르 대결",
+    "theme_title": "하우스 🏠 vs 테크노 ⚡",
+    "trackA": {
+      "id": "r1a",
+      "title": "Sunset Groove (Club Mix)",
+      "artist": "Oliver Deep",
+      "artwork_url": "/artwork/r1a.svg",
+      "genre_tags": ["하우스", "EDM", "클럽"],
+      "basePositivity": 0.72
+    },
+    "trackB": {
+      "id": "r1b",
+      "title": "Hyperdrive 150",
+      "artist": "KlangTechno",
+      "artwork_url": "/artwork/r1b.svg",
+      "genre_tags": ["테크노", "일렉트로닉", "하드비트"],
+      "basePositivity": 0.68
+    }
+  },
+  {
+    "round": 2,
+    "theme_tag": "시대 대결",
+    "theme_title": "2000년대 추억가요 📼 vs 최신 챌린지송 📱",
+    "trackA": {
+      "id": "r2a",
+      "title": "Flashback 2004",
+      "artist": "Cyworld Memory",
+      "artwork_url": "/artwork/r2a.svg",
+      "genre_tags": ["2000s", "레트로", "K-POP"],
+      "basePositivity": 0.78
+    },
+    "trackB": {
+      "id": "r2b",
+      "title": "Neon Beat (Shorts Viral Edit)",
+      "artist": "Nova Pulse",
+      "artwork_url": "/artwork/r2b.svg",
+      "genre_tags": ["트렌드", "숏폼", "최신가요"],
+      "basePositivity": 0.70
+    }
+  },
+  {
+    "round": 3,
+    "theme_tag": "분위기 대결",
+    "theme_title": "감성 싱어롱 🎙️ vs 광란의 헤드뱅잉 🤯",
+    "trackA": {
+      "id": "r3a",
+      "title": "Midnight Anthem (Singalong)",
+      "artist": "The Echoes",
+      "artwork_url": "/artwork/r3a.svg",
+      "genre_tags": ["싱어롱", "감성", "팝"],
+      "basePositivity": 0.75
+    },
+    "trackB": {
+      "id": "r3b",
+      "title": "Bass Overload (Headbang Drop)",
+      "artist": "Rave Overlord",
+      "artwork_url": "/artwork/r3b.svg",
+      "genre_tags": ["헤드뱅잉", "베이스", "하드락"],
+      "basePositivity": 0.74
+    }
+  }
+]
