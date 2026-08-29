@@ -11,6 +11,7 @@ import { ReactionRateBar } from './ReactionRateBar';
 import { TagPicker } from './TagPicker';
 import { TagTicker } from './TagTicker';
 import { Visualizer } from './Visualizer';
+import { BATTLE_CONFIG } from '@/lib/battle/battleConfig';
 import { VoteResultSummary } from './VoteResultSummary';
 
 export type Sentiment = 'good' | 'so_so' | 'bad';
@@ -38,6 +39,8 @@ export interface NowPlayingScreenProps {
   scoreB: number;
   winnerScore?: number;
   userPickedWinner: boolean;
+  /** 사용자가 이 라운드에서 고른 곡 제목 (기권 시 null) */
+  myPickTitle?: string | null;
   initialReactionCounts?: ReactionCounts;
   myReaction?: Sentiment | null;
   myTags?: string[];
@@ -54,6 +57,8 @@ interface LegacyTrack {
 interface LegacyResult {
   winner: LegacyTrack; winnerSide: 'A' | 'B'; didIWin: boolean;
   scoreA: number; scoreB: number;
+  /** 사용자가 이 라운드에서 실제로 고른 곡 (기권 시 null) */
+  myTrack?: LegacyTrack | null;
 }
 interface LegacyNowPlayingScreenProps {
   currentRound: number;
@@ -72,6 +77,7 @@ interface NormalizedProps {
   scoreB: number;
   winnerScore?: number;
   userPickedWinner: boolean;
+  myPickTitle: string | null;
   initialCounts?: ReactionCounts;
   initialReaction: Sentiment | null;
   initialTags: string[];
@@ -106,6 +112,7 @@ function normalizeProps(props: CompatibleNowPlayingProps): NormalizedProps {
       scoreB: props.scoreB,
       winnerScore: props.winnerScore,
       userPickedWinner: props.userPickedWinner,
+      myPickTitle: props.myPickTitle ?? null,
       initialCounts: props.initialReactionCounts,
       initialReaction: props.myReaction ?? null,
       initialTags: props.myTags ?? EMPTY_TAGS,
@@ -119,7 +126,7 @@ function normalizeProps(props: CompatibleNowPlayingProps): NormalizedProps {
   const { lastRoundResult: result } = props;
   return {
     round: props.currentRound,
-    totalRounds: 3,
+    totalRounds: BATTLE_CONFIG.ROUND_TOTAL,
     track: {
       id: result.winner.id,
       title: result.winner.title,
@@ -131,6 +138,7 @@ function normalizeProps(props: CompatibleNowPlayingProps): NormalizedProps {
     scoreB: result.scoreB,
     winnerScore: result.winnerSide === 'A' ? result.scoreA : result.scoreB,
     userPickedWinner: result.didIWin,
+    myPickTitle: result.myTrack?.title ?? null,
     initialCounts: undefined,
     initialReaction: null,
     initialTags: EMPTY_TAGS,
@@ -148,7 +156,7 @@ export function NowPlayingScreen(props: CompatibleNowPlayingProps) {
 
 function NowPlayingContent({ model }: { model: NormalizedProps }) {
   const {
-    round, totalRounds, track, scoreA, scoreB, winnerScore, userPickedWinner,
+    round, totalRounds, track, scoreA, scoreB, winnerScore, userPickedWinner, myPickTitle,
     initialCounts, initialReaction, initialTags, onReaction, onTags, onNext, legacySave,
   } = model;
   const tags = track.genreTags.length > 0 ? track.genreTags : DEFAULT_TAGS;
@@ -293,7 +301,7 @@ function NowPlayingContent({ model }: { model: NormalizedProps }) {
         </section>
 
         <div className="space-y-2 px-1"><Visualizer /><FakeProgressBar key={`${track.id}-${track.durationSec ?? 228}`} durationSec={track.durationSec} /></div>
-        <VoteResultSummary scoreA={scoreA} scoreB={scoreB} winnerScore={winnerScore} userPickedWinner={userPickedWinner} />
+        <VoteResultSummary scoreA={scoreA} scoreB={scoreB} winnerScore={winnerScore} userPickedWinner={userPickedWinner} myPickTitle={myPickTitle} />
 
         <section className="space-y-4 rounded-3xl border border-white/10 bg-surface-2/55 p-3 backdrop-blur-sm">
           <ReactionButtons selectedReaction={selectedReaction} onSelectReaction={handleReaction} />

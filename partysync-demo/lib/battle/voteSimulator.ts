@@ -3,15 +3,19 @@ import { BATTLE_CONFIG } from './battleConfig';
 
 export interface VoteSimulationOptions {
   onVoteDelta: (side: 'A' | 'B', delta: number) => void;
+  /** A 진영으로 표가 갈 확률 (0~1). 배틀마다 군중이 미는 곡이 다르다. */
+  sideAProbability?: number;
 }
 
 export class VoteSimulator {
   private timerId: number | null = null;
   private isRunning: boolean = false;
   private onVoteDelta: (side: 'A' | 'B', delta: number) => void;
+  private sideAProbability: number;
 
   constructor(options: VoteSimulationOptions) {
     this.onVoteDelta = options.onVoteDelta;
+    this.sideAProbability = options.sideAProbability ?? 0.5;
   }
 
   public start(): void {
@@ -29,7 +33,8 @@ export class VoteSimulator {
       this.timerId = window.setTimeout(() => {
         if (!this.isRunning) return;
 
-        const side: 'A' | 'B' = Math.random() < 0.5 ? 'A' : 'B';
+        const side: 'A' | 'B' =
+          Math.random() < this.sideAProbability ? 'A' : 'B';
         const delta = randomInt(
           BATTLE_CONFIG.DELTA_MIN,
           BATTLE_CONFIG.DELTA_MAX

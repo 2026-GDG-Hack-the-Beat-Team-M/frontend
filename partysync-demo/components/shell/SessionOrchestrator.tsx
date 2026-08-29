@@ -2,7 +2,6 @@
 
 import React, { useEffect } from 'react';
 import { useSessionStore } from '@/store/session';
-import presets from '@/data/presets.json';
 import { OnboardingScreen } from './OnboardingScreen';
 import { BattleScreen } from '@/components/battle/BattleScreen';
 import { NowPlayingScreen } from '@/components/nowplaying/NowPlayingScreen';
@@ -15,8 +14,10 @@ export function SessionOrchestrator() {
     nickname,
     currentRound,
     phase,
+    matchups,
     battleLogs,
     reactionLogs,
+    isHydrated,
     setNickname,
     startSession,
     recordRoundResult,
@@ -31,60 +32,72 @@ export function SessionOrchestrator() {
     restoreFromStorage();
   }, [restoreFromStorage]);
 
-  const currentPreset =
-    presets.find((p) => p.round === currentRound) || presets[0];
-  const lastBattleResult = battleLogs[battleLogs.length - 1];
+  const currentPreset = matchups.find((p) => p.round === currentRound);
+  const currentBattleResult = battleLogs.find((b) => b.round === currentRound);
+
+  const handleJoin = (name: string) => {
+    setNickname(name);
+    startSession();
+  };
+
+  // 세션 상태가 깨진 경우(매치업/배틀 로그 유실)에는 온보딩으로 되돌린다.
+  const isPlayable =
+    phase === 'battle'
+      ? !!currentPreset
+      : phase === 'nowplaying'
+      ? !!currentBattleResult
+      : true;
+  const resolvedPhase = isPlayable ? phase : 'onboarding';
 
   return (
     <div className="w-full min-h-screen bg-bg flex flex-col justify-center items-center font-kr selection:bg-accent selection:text-white">
-      <PhaseTransition phaseKey={`${phase}_${currentRound}`}>
-        {phase === 'onboarding' && (
-          <OnboardingScreen
-            onJoin={(name) => {
-              setNickname(name);
-              startSession();
-            }}
-          />
-        )}
+      {!isHydrated ? null : (
+        <PhaseTransition phaseKey={`${resolvedPhase}_${currentRound}`}>
+          {resolvedPhase === 'onboarding' && (
+            <OnboardingScreen onJoin={handleJoin} />
+          )}
 
-        {phase === 'battle' && (
-          <BattleScreen
-            preset={currentPreset}
-            currentRound={currentRound}
-            onBattleEnd={(result) => {
-              recordRoundResult(result);
-            }}
-          />
-        )}
+          {resolvedPhase === 'battle' && currentPreset && (
+            <BattleScreen
+              // 라운드마다 배틀 상태를 완전히 새로 시작한다
+              key={`battle_${currentRound}`}
+              preset={currentPreset}
+              currentRound={currentRound}
+              onBattleEnd={recordRoundResult}
+            />
+          )}
 
-        {phase === 'nowplaying' && lastBattleResult && (
-          <NowPlayingScreen
-            currentRound={currentRound}
-            lastRoundResult={lastBattleResult}
-            onSaveReaction={(reaction, tags, isLiked) => {
-              recordReaction({
-                round: currentRound,
-                trackId: lastBattleResult.winner.id,
-                reaction,
-                tags,
-                isLiked,
-              });
-            }}
-            onNextRound={nextRound}
-          />
-        )}
+          {resolvedPhase === 'nowplaying' && currentBattleResult && (
+            <NowPlayingScreen
+              key={`nowplaying_${currentRound}`}
+              currentRound={currentRound}
+              lastRoundResult={currentBattleResult}
+              onSaveReaction={(reaction, tags, isLiked) => {
+                recordReaction({
+                  round: currentRound,
+                  // 반응 대상은 이 라운드에서 재생 중인 승리곡
+                  trackId: currentBattleResult.winner.id,
+                  reaction,
+                  tags,
+                  isLiked,
+                });
+              }}
+              onNextRound={nextRound}
+            />
+          )}
 
-        {phase === 'result' && (
-          <TasteResultScreen
-            nickname={nickname}
-            battleLogs={battleLogs}
-            reactionLogs={reactionLogs}
-            onSubmitFeedback={submitFeedback}
-          />
-        )}
+          {resolvedPhase === 'result' && (
+            <TasteResultScreen
+              nickname={nickname}
+              battleLogs={battleLogs}
+              reactionLogs={reactionLogs}
+              onSubmitFeedback={submitFeedback}
+            />
+          )}
 
-        {phase === 'done' && <DoneScreen onRestart={resetSession} />}
-      </PhaseTransition>
+          {resolvedPhase === 'done' && <DoneScreen onRestart={resetSession} />}
+        </PhaseTransition>
+      )}
     </div>
   );
 }

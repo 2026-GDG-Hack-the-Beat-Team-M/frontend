@@ -61,7 +61,14 @@ export function SplitCard({
           loading="eager"
           referrerPolicy="no-referrer"
           onError={(event) => {
-            event.currentTarget.style.display = 'none';
+            // 외부 커버가 막히면 로컬 SVG로 대체하고, 그것마저 실패하면
+            // 아래의 이니셜 플레이스홀더가 드러나도록 숨긴다
+            const img = event.currentTarget;
+            if (track.artwork_fallback && !img.src.endsWith(track.artwork_fallback)) {
+              img.src = track.artwork_fallback;
+              return;
+            }
+            img.style.display = 'none';
           }}
         />
         <div className="absolute inset-0 z-20 bg-gradient-to-tr from-black/20 via-transparent to-white/10" />

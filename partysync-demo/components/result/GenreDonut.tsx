@@ -8,6 +8,19 @@ interface GenreDonutProps {
 const GENRE_COLORS = ['#FF2D95', '#00F0FF', '#9D4EDD', '#FFD600', '#38EF7D'];
 
 export function GenreDonut({ distribution }: GenreDonutProps) {
+  if (distribution.length === 0) {
+    return (
+      <div className="w-full p-4 rounded-3xl bg-surface-1 border border-white/10 text-center">
+        <h3 className="text-xs font-bold text-ink-dim tracking-wider uppercase font-en">
+          GENRE PREFERENCE
+        </h3>
+        <p className="text-[11px] text-ink-muted font-kr mt-2">
+          고른 곡이 없어 장르 분포를 만들 수 없어요
+        </p>
+      </div>
+    );
+  }
+
   // Compute SVG arc stroke dasharrays
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
@@ -15,9 +28,12 @@ export function GenreDonut({ distribution }: GenreDonutProps) {
 
   return (
     <div className="w-full p-4 rounded-3xl bg-surface-1 border border-white/10 space-y-3">
-      <h3 className="text-xs font-bold text-ink-dim tracking-wider uppercase font-en">
-        GENRE PREFERENCE
-      </h3>
+      <div className="flex items-baseline justify-between">
+        <h3 className="text-xs font-bold text-ink-dim tracking-wider uppercase font-en">
+          GENRE PREFERENCE
+        </h3>
+        <span className="text-[10px] text-ink-muted font-kr">내가 고른 곡 기준</span>
+      </div>
 
       <div className="flex items-center gap-6">
         {/* SVG Donut Chart */}

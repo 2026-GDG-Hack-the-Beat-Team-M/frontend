@@ -24,11 +24,16 @@ export function resolveWinner(
   const ratioB = total > 0 ? Number((scoreB / total).toFixed(2)) : 0.5;
   const didIWin = myTeam !== null && myTeam === winnerSide;
 
+  // 사용자가 한 번도 탭하지 않았다면 선택 없음(null). 승리곡으로 대체하지 않는다.
+  const myTrack =
+    myTeam === 'A' ? preset.trackA : myTeam === 'B' ? preset.trackB : null;
+
   return {
     round: preset.round,
     winner,
     winnerSide,
     myTeam,
+    myTrack,
     myTapCount,
     didIWin,
     scoreA,

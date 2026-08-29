@@ -21,11 +21,14 @@ interface Ripple {
 export function TapArea({ myTeam, myTapCount, onTap, disabled }: TapAreaProps) {
   const [ripples, setRipples] = useState<Ripple[]>([]);
   const [streak, setStreak] = useState(0);
+  // 진영을 고르기 전에는 연타할 수 없다. 임의로 A팀에 표가 들어가면
+  // 사용자가 고르지 않은 곡이 '내 선택'으로 기록된다.
+  const isLocked = myTeam === null;
   const streakTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTapLimited = myTapCount >= BATTLE_CONFIG.TAP_LIMIT;
 
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (disabled || isTapLimited) return;
+    if (disabled || isTapLimited || !myTeam) return;
 
     // Trigger haptic feedback
     triggerHaptic(15);
@@ -50,12 +53,10 @@ export function TapArea({ myTeam, myTapCount, onTap, disabled }: TapAreaProps) {
     if (streakTimerRef.current) clearTimeout(streakTimerRef.current);
     streakTimerRef.current = setTimeout(() => setStreak(0), 700);
 
-    // If no team is selected yet, default to A or require selection
-    const targetSide = myTeam || 'A';
-    onTap(targetSide);
+    onTap(myTeam);
   };
 
-  const isSideA = myTeam === 'A' || myTeam === null;
+  const isSideA = myTeam === 'A';
 
   return (
     <div className="relative w-full flex flex-col items-center gap-2">
@@ -68,10 +69,12 @@ export function TapArea({ myTeam, myTapCount, onTap, disabled }: TapAreaProps) {
       <button
         type="button"
         onPointerDown={handlePointerDown}
-        disabled={disabled || isTapLimited}
+        disabled={disabled || isTapLimited || isLocked}
         className={clsx(
           'relative w-full h-[76px] rounded-2xl overflow-hidden font-en font-black select-none transition-all duration-75 active:scale-[0.96] flex flex-col items-center justify-center p-3 border shadow-2xl',
-          isSideA
+          isLocked
+            ? 'bg-surface-2 text-ink-dim border-white/10'
+            : isSideA
             ? 'bg-gradient-to-br from-accent-dark/80 via-accent/90 to-accent-light text-white border-accent-light/40 shadow-glow-accent'
             : 'bg-gradient-to-br from-blue-700 via-neon-cyan/90 to-cyan-300 text-black border-cyan-200/50 shadow-glow-cyan',
           ripples.length > 0 && 'scale-[1.015] brightness-125',

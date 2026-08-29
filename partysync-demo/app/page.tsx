@@ -1,5 +1,9 @@
-import { SessionOrchestrator } from '@/components/shell/SessionOrchestrator';
+import { LandingScreen } from '@/components/shell/LandingScreen';
 
 export default function HomePage() {
-  return <SessionOrchestrator />;
+  return (
+    <div className="w-full min-h-screen bg-bg flex flex-col justify-center items-center font-kr">
+      <LandingScreen />
+    </div>
+  );
 }
