@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PartySync — 관객 메인 화면 v5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#07060B; --s1:#121019; --s2:#1A1724;
+  --ink:#F6F4FA; --dim:#847E96;
+  --accent:#FF2D95; --accent-l:#FF74B8; --accent-d:#B80D5F;
+  --kr:'Pretendard','Apple SD Gothic Neo',system-ui,sans-serif;
+  --en:'Space Grotesk',sans-serif;
+  --lift-1:0 1px 0 rgba(255,255,255,.055) inset,0 10px 20px -10px rgba(0,0,0,.9);
+  --lift-2:0 1px 0 rgba(255,255,255,.09) inset,0 -1px 0 rgba(0,0,0,.4) inset,
+           0 18px 30px -14px rgba(0,0,0,.95),0 3px 8px -4px rgba(0,0,0,.6);
+}
+html,body{height:100%}
+body{background:#0d0d10;display:grid;place-items:center;padding:28px 16px;font-family:var(--kr);-webkit-font-smoothing:antialiased}
+.phone{
+  width:392px;height:812px;border-radius:46px;padding:10px;
+  background:linear-gradient(160deg,#33333c,#0c0c10 60%);
+  box-shadow:0 50px 100px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.07),0 2px 3px rgba(255,255,255,.12) inset;
+}
+.screen{
+  width:100%;height:100%;border-radius:37px;overflow:hidden;position:relative;
+  background:var(--bg);color:var(--ink);display:flex;flex-direction:column;
+}
+.screen::before{
+  content:"";position:absolute;left:50%;top:-180px;width:520px;height:420px;transform:translateX(-50%);
+  background:radial-gradient(closest-side,rgba(255,45,149,.22),transparent 72%);pointer-events:none;filter:blur(10px);transition:background .6s;
+}
+.screen.critical::before{background:radial-gradient(closest-side,rgba(255,77,61,.3),transparent 72%)}
+.screen::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:0 -120px 140px -60px rgba(0,0,0,.85) inset}
+
+.status{display:flex;justify-content:space-between;align-items:center;padding:16px 26px 4px;font-family:var(--en);font-size:14px;font-weight:600;position:relative;z-index:3}
+.status .r{display:flex;gap:6px;align-items:center;opacity:.9;font-size:12px}
+.head{display:flex;align-items:center;gap:12px;padding:14px 22px 0;position:relative;z-index:3}
+.head .mark,.head .me{
+  width:44px;height:44px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
+  background:linear-gradient(165deg,var(--s2),#0E0C14);
+  box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 -2px 6px rgba(0,0,0,.5) inset,0 8px 14px -8px #000;
+}
+.head .mark{font-size:16px}
+.head .me{font-family:var(--en);font-size:13px;font-weight:600;color:#CFC7DE;margin-left:auto}
+.head h1{font-size:14px;font-weight:700;letter-spacing:.06em;line-height:1.2}
+.head p{font-size:12.5px;color:var(--dim);margin-top:3px}
+
+/* 타이머 게이지 */
+.timer{padding:22px 24px 0;position:relative;z-index:3}
+.tlab{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+.tlab span{font-family:var(--en);font-size:10px;letter-spacing:.18em;color:var(--dim)}
+.tlab b{font-family:var(--en);font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.ttrack{height:8px;border-radius:999px;overflow:hidden;background:linear-gradient(180deg,#0A0810,#191524);box-shadow:0 3px 7px rgba(0,0,0,.85) inset,0 1px 0 rgba(255,255,255,.07)}
+.ttrack i{display:block;height:100%;width:100%;border-radius:999px;transition:width 1s linear,background .4s;
+  background:linear-gradient(90deg,var(--accent-d),var(--accent-l));box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 0 16px rgba(255,45,149,.6)}
+.critical .ttrack i{background:linear-gradient(90deg,#B02010,#FF7A5C);animation:blink .7s infinite}
+.critical .tlab b{color:#FF7A5C}
+@keyframes blink{50%{opacity:.55}}
+.tnote{margin-top:9px;font-size:11.5px;color:var(--dim);text-align:center;min-height:16px}
+.critical .tnote{color:#FF7A5C;font-weight:600}
+
+/* 페이지 전환 */
+.pages{flex:1;position:relative;overflow:hidden}
+.page{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none;transition:transform .45s cubic-bezier(.2,.8,.3,1),opacity .35s}
+.page::-webkit-scrollbar{display:none}
+.page[hidden]{display:block;pointer-events:none;opacity:0}
+#pVote[hidden]{transform:translateX(-14%) scale(.96)}
+#pLive{transform:translateX(16%);opacity:0}
+#pLive.in{transform:none;opacity:1}
+@media (prefers-reduced-motion:reduce){.page{transition:none}}
+
+/* ── 투표 페이지 ── */
+.hero{padding:18px 26px 0;text-align:center}
+.hero h2{font-size:31px;font-weight:800;line-height:1.28;letter-spacing:-.035em;margin-bottom:14px;text-shadow:0 2px 12px rgba(0,0,0,.7)}
+.hero h2 em{font-style:normal;color:#FF5FAE;text-shadow:0 0 26px rgba(255,45,149,.65)}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:999px;font-size:12.5px;color:var(--dim);
+  background:linear-gradient(180deg,var(--s1),#0C0A12);box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 6px 14px -8px rgba(0,0,0,.9)}
+.tracks{padding:24px 20px 0}
+.track{
+  width:100%;display:flex;gap:15px;align-items:flex-start;text-align:left;color:inherit;font-family:inherit;
+  cursor:pointer;border:0;position:relative;border-radius:22px;padding:15px;overflow:hidden;
+  background:linear-gradient(168deg,var(--s2),#0E0C14 78%);box-shadow:var(--lift-2);
+  transition:transform .24s cubic-bezier(.2,.8,.3,1),box-shadow .24s,opacity .24s;
+}
+.track:hover{transform:translateY(-2px)}
+.track:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.track.on{transform:translateY(-4px);background:linear-gradient(168deg,#2A1526,#140B15 78%);
+  box-shadow:0 1px 0 rgba(255,150,200,.28) inset,0 24px 40px -18px rgba(255,45,149,.55),0 10px 20px -12px rgba(0,0,0,.9)}
+.track.dim{opacity:.42;transform:scale(.97)}
+.track.pop{animation:pop .4s cubic-bezier(.3,1.6,.4,1)}
+@keyframes pop{0%{transform:translateY(-4px)}45%{transform:translateY(-8px) scale(1.025)}100%{transform:translateY(-4px)}}
+.ripple{position:absolute;border-radius:50%;background:rgba(255,45,149,.35);transform:translate(-50%,-50%) scale(0);animation:rip .55s ease-out forwards;pointer-events:none}
+@keyframes rip{to{transform:translate(-50%,-50%) scale(9);opacity:0}}
+
+.art{position:relative;overflow:hidden;border-radius:14px;flex:0 0 auto;
+  background:radial-gradient(120% 100% at 22% 12%,#5B2A7A,#1B1226 60%,#0C0812);
+  box-shadow:0 1px 0 rgba(255,255,255,.14) inset,0 -10px 18px rgba(0,0,0,.6) inset,0 10px 18px -10px rgba(0,0,0,.95)}
+.art.sm{width:90px;height:90px}
+.orb{position:absolute;border-radius:50%;background:radial-gradient(circle at 32% 28%,#FFB3DA,#FF2D95 42%,#7A1E8F 78%,#2A0F33);
+  box-shadow:0 8px 16px rgba(0,0,0,.55),0 0 26px rgba(255,45,149,.35);transition:transform .25s,box-shadow .25s}
+.art.sm .orb{width:60px;height:60px;left:14px;top:12px}
+.b .orb{background:radial-gradient(circle at 32% 28%,#BFE9FF,#3AA6FF 42%,#2B2FA0 78%,#0F1236)}
+.on .orb{transform:scale(1.06);box-shadow:0 10px 20px rgba(0,0,0,.6),0 0 34px rgba(255,45,149,.7)}
+.gloss{position:absolute;inset:0;background:linear-gradient(150deg,rgba(255,255,255,.17),rgba(255,255,255,0) 42%)}
+.len{position:absolute;left:8px;bottom:7px;z-index:3;font-family:var(--en);font-size:10.5px;font-weight:600;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.9)}
+.info{flex:1;min-width:0;padding-top:2px}
+.trow{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.genre{font-family:var(--en);font-size:10px;font-weight:600;letter-spacing:.1em;color:#A79FBC;border-radius:999px;padding:4px 10px;
+  background:linear-gradient(180deg,#211D2C,#141019);box-shadow:0 1px 0 rgba(255,255,255,.08) inset}
+.on .genre{color:#FFCCE5;background:linear-gradient(180deg,rgba(255,45,149,.35),rgba(255,45,149,.12))}
+.radio{margin-left:auto;width:24px;height:24px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
+  background:linear-gradient(180deg,#0B0910,#171320);box-shadow:0 2px 5px rgba(0,0,0,.8) inset,0 1px 0 rgba(255,255,255,.08)}
+.radio i{width:11px;height:11px;border-radius:50%;transform:scale(0);transition:transform .24s cubic-bezier(.3,1.7,.5,1);
+  background:radial-gradient(circle at 34% 30%,#FF9AC9,var(--accent) 65%);box-shadow:0 0 12px rgba(255,45,149,.9)}
+.on .radio i{transform:scale(1)}
+.tt{font-size:18px;font-weight:700;letter-spacing:-.02em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ta{font-size:12.5px;color:var(--dim);margin-top:4px}
+.wave{display:flex;align-items:flex-end;gap:2px;height:28px;margin-top:12px}
+.wave i{flex:1;border-radius:1.5px;background:linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,.1));transition:background .25s}
+.on .wave i{background:linear-gradient(180deg,#FF8FC4,#C4166E);box-shadow:0 0 8px rgba(255,45,149,.55)}
+.vs{display:flex;align-items:center;gap:14px;padding:18px 8px}
+.vs span{flex:1;height:2px;border-radius:2px;background:linear-gradient(180deg,rgba(0,0,0,.8),rgba(255,255,255,.07))}
+.vs b{font-family:var(--en);font-size:12.5px;font-weight:700;letter-spacing:.08em;color:#B6ADC9;width:44px;height:44px;border-radius:50%;
+  display:grid;place-items:center;flex:0 0 auto;background:linear-gradient(170deg,var(--s2),#0B0910);
+  box-shadow:0 1px 0 rgba(255,255,255,.11) inset,0 -3px 8px rgba(0,0,0,.6) inset,0 10px 18px -10px #000}
+
+/* CTA */
+.cta{padding:20px 22px 24px}
+.cta button{
+  width:100%;border:0;border-radius:999px;padding:19px;cursor:pointer;position:relative;overflow:hidden;
+  font-family:var(--kr);font-size:16.5px;font-weight:700;letter-spacing:-.01em;color:#20030F;
+  background:linear-gradient(180deg,var(--accent-l),#E01277 55%,var(--accent-d));
+  box-shadow:0 2px 0 rgba(255,255,255,.45) inset,0 -3px 6px rgba(0,0,0,.3) inset,0 10px 0 -4px #7C0840,0 22px 34px -14px rgba(255,45,149,.65);
+  transition:transform .09s,box-shadow .09s;
+}
+.cta button:active{transform:translateY(5px);box-shadow:0 2px 0 rgba(255,255,255,.3) inset,0 5px 0 -4px #7C0840}
+.cta .note{text-align:center;font-size:11.5px;color:var(--dim);margin-top:12px}
+.nudge{animation:nudge .4s}
+@keyframes nudge{25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
+
+/* ── 라이브 페이지 ── */
+.voted{
+  margin:6px 20px 0;border-radius:18px;padding:13px 15px;display:flex;align-items:center;gap:11px;
+  background:linear-gradient(168deg,#17352A,#0C1C16 80%);box-shadow:var(--lift-1);
+}
+.voted .ck{width:26px;height:26px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-size:13px;color:#0C1C16;
+  background:linear-gradient(180deg,#7FEFB9,#31C182);box-shadow:0 1px 0 rgba(255,255,255,.5) inset}
+.voted .vt{font-size:13px;font-weight:600}
+.voted .vs2{font-size:11.5px;color:#7FBFA3;margin-top:3px}
+.voted .pct{margin-left:auto;font-family:var(--en);font-size:16px;font-weight:700;color:#9DF5C8}
+
+/* 플레이어 */
+.player{margin:16px 20px 0;border-radius:26px;padding:16px;background:linear-gradient(168deg,var(--s2),#0D0B12 80%);box-shadow:var(--lift-2)}
+.cover{position:relative;width:100%;aspect-ratio:1/1;border-radius:20px;overflow:hidden;
+  background:radial-gradient(120% 100% at 24% 14%,#6B2F8E,#1B1226 58%,#0A0710);
+  box-shadow:0 1px 0 rgba(255,255,255,.14) inset,0 -16px 30px rgba(0,0,0,.6) inset,0 18px 30px -16px #000}
+.cover .orb{width:56%;height:56%;left:16%;top:13%;animation:float 6s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-8px) scale(1.02)}}
+@media (prefers-reduced-motion:reduce){.cover .orb{animation:none}}
+.cover .ring{position:absolute;left:8%;top:6%;width:70%;height:70%;border-radius:50%;border:1px solid rgba(255,255,255,.13)}
+.cover .live{
+  position:absolute;left:14px;top:14px;z-index:4;display:inline-flex;align-items:center;gap:6px;
+  padding:6px 11px;border-radius:999px;font-family:var(--en);font-size:9.5px;font-weight:700;letter-spacing:.14em;
+  background:rgba(10,8,14,.55);backdrop-filter:blur(8px);box-shadow:0 1px 0 rgba(255,255,255,.14) inset;color:#FF8FC4;
+}
+.cover .live i{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:blink 1.4s infinite}
+.fxlayer{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:5}
+.fly{position:absolute;bottom:64px;font-size:26px;animation:fly 2.1s ease-out forwards;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
+@keyframes fly{
+  0%{transform:translate(0,0) scale(.5);opacity:0}
+  12%{opacity:1;transform:translate(0,-10px) scale(1.15)}
+  100%{transform:translate(var(--x),-320px) scale(.9) rotate(var(--r));opacity:0}
+}
+/* 반응 바 — 커버 위 오버레이 */
+.reactbar{
+  position:absolute;left:12px;right:12px;bottom:12px;z-index:6;display:flex;gap:6px;padding:8px;border-radius:18px;
+  background:rgba(12,9,18,.55);backdrop-filter:blur(14px);box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 10px 24px -12px #000;
+}
+.reactbar button{
+  flex:1;border:0;background:transparent;cursor:pointer;border-radius:13px;padding:9px 2px;color:#EDE7F5;
+  font-family:var(--en);font-size:10.5px;font-weight:600;transition:transform .14s,background .2s;
+}
+.reactbar button b{display:block;font-size:21px;font-weight:400;margin-bottom:3px;transition:transform .18s}
+.reactbar button:hover{background:rgba(255,255,255,.08)}
+.reactbar button:active b{transform:scale(1.45)}
+.reactbar button.mine{background:linear-gradient(180deg,rgba(255,45,149,.4),rgba(255,45,149,.14));box-shadow:0 1px 0 rgba(255,255,255,.2) inset}
+.pmeta{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:16px 2px 12px}
+.pmeta .pt{font-size:19px;font-weight:700;letter-spacing:-.02em}
+.pmeta .pa2{font-size:13px;color:var(--dim);margin-top:5px}
+.pmeta .tagp{font-family:var(--en);font-size:9.5px;letter-spacing:.14em;color:#A79FBC;border-radius:999px;padding:5px 10px;flex:0 0 auto;
+  background:linear-gradient(180deg,#211D2C,#141019);box-shadow:0 1px 0 rgba(255,255,255,.08) inset}
+.prog{height:5px;border-radius:999px;position:relative;background:linear-gradient(180deg,#0A0810,#191524);box-shadow:0 2px 5px rgba(0,0,0,.85) inset}
+.prog i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#B80D5F,#FF74B8);box-shadow:0 0 12px rgba(255,45,149,.6);transition:width 1s linear}
+.prog b{position:absolute;top:50%;width:11px;height:11px;border-radius:50%;transform:translate(-50%,-50%);transition:left 1s linear;
+  background:radial-gradient(circle at 34% 30%,#fff,#FF9AC9);box-shadow:0 0 10px rgba(255,45,149,.9),0 2px 4px rgba(0,0,0,.6)}
+.ptime{display:flex;justify-content:space-between;margin-top:9px;font-family:var(--en);font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+.rsum{display:flex;gap:8px;justify-content:center;margin-top:14px;font-size:11.5px;color:var(--dim);font-variant-numeric:tabular-nums}
+.rsum span{display:inline-flex;gap:5px;align-items:center}
+
+/* 질문 카드 */
+.panel{margin:14px 20px 0;border-radius:22px;padding:17px;background:linear-gradient(168deg,var(--s1),#0B0912 80%);box-shadow:var(--lift-1)}
+.k{font-family:var(--en);font-size:10px;letter-spacing:.16em;color:var(--dim);display:block;margin-bottom:8px}
+.qt{font-size:17px;font-weight:700;letter-spacing:-.02em;margin-bottom:14px}
+.opts{display:grid;gap:8px}
+.opt{
+  width:100%;border:0;cursor:pointer;text-align:left;border-radius:15px;padding:14px 15px;position:relative;overflow:hidden;
+  color:var(--ink);font-family:var(--kr);font-size:14px;font-weight:600;
+  background:linear-gradient(180deg,#221E2D,#121019);box-shadow:0 1px 0 rgba(255,255,255,.09) inset,0 8px 14px -10px #000;
+  transition:transform .14s;display:flex;align-items:center;gap:10px;
+}
+.opt:hover{transform:translateY(-2px)}
+.opt:active{transform:translateY(1px)}
+.opt .fillb{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,rgba(255,45,149,.34),rgba(255,45,149,.1));transition:width .7s cubic-bezier(.2,.8,.3,1)}
+.opt .lb,.opt .rb{position:relative;z-index:2}
+.opt .rb{margin-left:auto;font-family:var(--en);font-size:13px;font-weight:700;opacity:0;transition:opacity .4s}
+.answered .opt .rb{opacity:1}
+.answered .opt{cursor:default}
+.opt.mine{box-shadow:0 1px 0 rgba(255,150,200,.3) inset,0 10px 20px -12px rgba(255,45,149,.9)}
+.opt.mine .lb::after{content:"내 선택";font-size:10.5px;color:#FF8FC4;margin-left:8px;font-weight:700}
+.qdone{margin-top:12px;font-size:11.5px;color:var(--dim);text-align:center;min-height:16px}
+
+.stats{display:flex;justify-content:space-between;padding:2px 0 8px}
+.stats div{text-align:center;flex:1}
+.stats div b{display:block;font-family:var(--en);font-size:24px;font-weight:600;letter-spacing:-.02em}
+.stats div span{font-size:11px;color:var(--dim);margin-top:5px;display:block}
+.endline{font-size:11.5px;color:var(--dim);text-align:center}
+.spacer{height:26px}
+
+/* 결과 시트 */
+.sheet{
+  position:absolute;left:0;right:0;bottom:0;z-index:40;transform:translateY(102%);transition:transform .5s cubic-bezier(.2,.9,.3,1);
+  border-radius:32px 32px 37px 37px;padding:26px 22px calc(26px + env(safe-area-inset-bottom));text-align:center;
+  background:linear-gradient(180deg,#241128,#0C0810 70%);
+  box-shadow:0 1px 0 rgba(255,255,255,.14) inset,0 -30px 60px -20px rgba(255,45,149,.5),0 -20px 40px rgba(0,0,0,.7);
+}
+.sheet.up{transform:none}
+.sheet .grip{width:42px;height:4px;border-radius:99px;background:rgba(255,255,255,.2);margin:0 auto 18px}
+.sheet .em{font-size:38px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.6))}
+.sheet h3{font-size:23px;font-weight:800;letter-spacing:-.03em;margin-top:10px}
+.sheet p{font-size:13px;color:var(--dim);margin-top:8px;line-height:1.55}
+.sheet .win{display:flex;align-items:center;gap:13px;text-align:left;margin:18px 0 6px;border-radius:18px;padding:13px;
+  background:linear-gradient(168deg,#2A1526,#140B15 78%);box-shadow:0 1px 0 rgba(255,150,200,.25) inset}
+.sheet .win .art.sm{width:56px;height:56px;border-radius:12px}
+.sheet .win .art.sm .orb{width:36px;height:36px;left:10px;top:8px}
+.sheet .win .k{margin-bottom:5px;color:#FF8FC4}
+.sheet .close{
+  width:100%;margin-top:16px;border:0;border-radius:999px;padding:17px;cursor:pointer;color:#20030F;
+  font-family:var(--kr);font-size:15.5px;font-weight:700;
+  background:linear-gradient(180deg,var(--accent-l),#E01277 55%,var(--accent-d));
+  box-shadow:0 2px 0 rgba(255,255,255,.45) inset,0 8px 0 -4px #7C0840,0 20px 30px -14px rgba(255,45,149,.6);
+}
+.sheet .close:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(255,255,255,.3) inset,0 4px 0 -4px #7C0840}
+.scrim{position:absolute;inset:0;background:rgba(4,3,7,.6);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .4s;z-index:35}
+.scrim.on{opacity:1}
+
+/* toast / confetti */
+.toast{position:absolute;left:50%;bottom:130px;transform:translate(-50%,20px);z-index:50;opacity:0;padding:12px 18px;border-radius:999px;
+  font-size:13px;font-weight:600;white-space:nowrap;background:linear-gradient(180deg,#2A2536,#15121D);
+  box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 18px 30px -12px #000;transition:opacity .3s,transform .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.conf{position:absolute;width:7px;height:11px;border-radius:2px;pointer-events:none;z-index:45;animation:conf 1.2s ease-out forwards}
+@keyframes conf{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
+</style>
+</head>
+<body>
+<div class="phone"><div class="screen" id="screen">
+
+  <div class="status"><span>9:41</span><span class="r">▮▮▮ ⌁ ▰</span></div>
+  <div class="toast" id="toast"></div>
+  <div class="scrim" id="scrim"></div>
+
+  <div class="head">
+    <div class="mark">♫</div>
+    <div><h1>MIDNIGHT DROP VOL.7</h1><p>메인 스테이지</p></div>
+    <div class="me">DJ</div>
+  </div>
+
+  <div class="timer">
+    <div class="tlab"><span id="tcap">TIME LEFT</span><b id="tnum">100초</b></div>
+    <div class="ttrack"><i id="tfill"></i></div>
+    <p class="tnote" id="tnote">투표가 끝나면 이긴 곡이 바로 재생돼요</p>
+  </div>
+
+  <div class="pages">
+
+    <!-- ============ 투표 페이지 ============ -->
+    <div class="page" id="pVote">
+      <div class="hero">
+        <h2>다음에 재생될<br><em>곡</em>은?</h2>
+        <span class="pill">QR로 입장한 사용자 전용 투표</span>
+      </div>
+
+      <div class="tracks">
+        <button class="track a" data-side="a" aria-pressed="false">
+          <div class="art sm"><div class="orb"></div><div class="gloss"></div><span class="len">3:45</span></div>
+          <div class="info">
+            <div class="trow"><span class="genre">HOUSE</span><span class="radio"><i></i></span></div>
+            <div class="tt">Neon Nights</div><div class="ta">Lunar Pulse</div>
+            <div class="wave"></div>
+          </div>
+        </button>
+        <div class="vs"><span></span><b>VS</b><span></span></div>
+        <button class="track b" data-side="b" aria-pressed="false">
+          <div class="art sm"><div class="orb"></div><div class="gloss"></div><span class="len">3:12</span></div>
+          <div class="info">
+            <div class="trow"><span class="genre">TECHNO</span><span class="radio"><i></i></span></div>
+            <div class="tt">Good Vibes Only</div><div class="ta">Sunny Day Collective</div>
+            <div class="wave"></div>
+          </div>
+        </button>
+      </div>
+
+      <div class="cta">
+        <button id="cta">투표하기</button>
+        <p class="note" id="ctaNote">한 번 고르면 진영은 바꿀 수 없어요</p>
+      </div>
+      <div class="spacer"></div>
+    </div>
+
+    <!-- ============ 라이브 페이지 ============ -->
+    <div class="page" id="pLive" hidden>
+      <div class="voted">
+        <span class="ck">✓</span>
+        <div>
+          <div class="vt">투표 완료 — <span id="myPick">Neon Nights</span></div>
+          <div class="vs2">결과가 나오면 바로 알려드릴게요</div>
+        </div>
+        <span class="pct" id="myPct">58%</span>
+      </div>
+
+      <div class="player">
+        <div class="cover">
+          <div class="ring"></div>
+          <div class="orb"></div>
+          <div class="gloss"></div>
+          <span class="live"><i></i>NOW PLAYING</span>
+          <div class="fxlayer" id="fx"></div>
+          <div class="reactbar" id="reactbar">
+            <button data-e="🔥" data-l="미쳤다"><b>🔥</b>미쳤다</button>
+            <button data-e="🙌" data-l="떼창각"><b>🙌</b>떼창각</button>
+            <button data-e="💃" data-l="춤나옴"><b>💃</b>춤나옴</button>
+            <button data-e="😐" data-l="쏘쏘"><b>😐</b>쏘쏘</button>
+            <button data-e="🥱" data-l="루즈"><b>🥱</b>루즈</button>
+          </div>
+        </div>
+
+        <div class="pmeta">
+          <div>
+            <div class="pt" id="npT">Midnight Signal</div>
+            <div class="pa2" id="npA">Velvet Room · DJ Set</div>
+          </div>
+          <span class="tagp">HOUSE</span>
+        </div>
+        <div class="prog"><i id="pfill" style="width:32%"></i><b id="pknob" style="left:32%"></b></div>
+        <div class="ptime"><span id="pnow">1:12</span><span id="pend">3:45</span></div>
+        <div class="rsum" id="rsum"><span>🔥 128</span><span>🙌 64</span><span>💃 41</span><span>😐 12</span><span>🥱 5</span></div>
+      </div>
+
+      <div class="panel" id="qpanel">
+        <span class="k">QUESTION 02 · 남은 시간 동안 답할 수 있어요</span>
+        <div class="qt">지금 소리 크기 어때요?</div>
+        <div class="opts" id="opts">
+          <button class="opt" data-p="18"><i class="fillb"></i><span class="lb">너무 커요</span><span class="rb">18%</span></button>
+          <button class="opt" data-p="61"><i class="fillb"></i><span class="lb">딱 좋아요</span><span class="rb">61%</span></button>
+          <button class="opt" data-p="21"><i class="fillb"></i><span class="lb">더 키워주세요</span><span class="rb">21%</span></button>
+        </div>
+        <p class="qdone" id="qdone">답하면 전체 결과가 바로 열려요</p>
+      </div>
+
+      <div class="panel">
+        <span class="k">TONIGHT</span>
+        <div class="stats">
+          <div><b>7</b><span>참여 배틀</span></div>
+          <div><b>2 · 5</b><span>승 · 패</span></div>
+          <div><b id="rcount">0</b><span>남긴 반응</span></div>
+        </div>
+        <div class="endline">파티가 끝나면 나의 뱃지가 열려요 · 종료까지 02:14:33</div>
+      </div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+
+  <!-- 결과 시트 -->
+  <div class="sheet" id="sheet">
+    <div class="grip"></div>
+    <div class="em" id="vem">🎉</div>
+    <h3 id="vtitle">내가 고른 곡이 이겼어요</h3>
+    <p id="vdesc">지금부터 Neon Nights가 플로어에 깔립니다</p>
+    <div class="win">
+      <div class="art sm"><div class="orb"></div><div class="gloss"></div></div>
+      <div class="info"><span class="k" id="wk">WINNER · 58%</span><div class="tt" id="wtt">Neon Nights</div><div class="ta" id="wta">Lunar Pulse · HOUSE</div></div>
+    </div>
+    <button class="close" id="closeSheet">반응 남기러 가기</button>
+  </div>
+
+</div></div>
+
+<script>
+(function(){
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $=id=>document.getElementById(id);
+const screen=$('screen'),cta=$('cta'),note=$('ctaNote'),toastEl=$('toast');
+const pVote=$('pVote'),pLive=$('pLive'),sheet=$('sheet'),scrim=$('scrim');
+const tfill=$('tfill'),tnum=$('tnum'),tnote=$('tnote'),tcap=$('tcap');
+const tracks=[...document.querySelectorAll('.track')];
+let picked=null,voted=false,pct=58,left=100,total=100,ended=false;
+
+document.querySelectorAll('.wave').forEach((w,i)=>{
+  for(let n=0;n<36;n++){const b=document.createElement('i');
+    b.style.height=(6+Math.abs(Math.sin(n/36*(i?9:7)+i))*15+Math.random()*5).toFixed(1)+'px';w.appendChild(b);}
+});
+const buzz=ms=>{if(navigator.vibrate)navigator.vibrate(ms)};
+function toast(m,ms){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastEl._t);
+  toastEl._t=setTimeout(()=>toastEl.classList.remove('show'),ms||2200)}
+function ripple(el,e){const r=el.getBoundingClientRect(),s=document.createElement('span');
+  s.className='ripple';s.style.width=s.style.height=r.width+'px';
+  s.style.left=(e?e.clientX-r.left:r.width/2)+'px';s.style.top=(e?e.clientY-r.top:r.height/2)+'px';
+  el.appendChild(s);setTimeout(()=>s.remove(),600)}
+function confetti(el){
+  const r=el.getBoundingClientRect(),hr=screen.getBoundingClientRect();
+  const cols=['#FF74B8','#FFD84D','#7ADBFF','#FFFFFF','#B36BFF'];
+  for(let i=0;i<28;i++){const c=document.createElement('i');c.className='conf';
+    c.style.background=cols[i%cols.length];
+    c.style.left=(r.left-hr.left+r.width/2)+'px';c.style.top=(r.top-hr.top+10)+'px';
+    c.style.setProperty('--dx',(Math.random()*280-140|0)+'px');
+    c.style.setProperty('--dy',(-110-Math.random()*170|0)+'px');
+    c.style.setProperty('--rot',(Math.random()*720-360|0)+'deg');
+    screen.appendChild(c);setTimeout(()=>c.remove(),1300)}
+}
+
+/* 1. 곡 선택 */
+tracks.forEach(t=>t.addEventListener('click',e=>{
+  if(voted)return;
+  picked=t.dataset.side;
+  tracks.forEach(x=>{const on=x===t;x.classList.toggle('on',on);x.classList.toggle('dim',!on);x.setAttribute('aria-pressed',on)});
+  t.classList.remove('pop');void t.offsetWidth;t.classList.add('pop');
+  ripple(t,e);buzz(10);
+  note.textContent='이 곡으로 갈까요? 투표 후에는 바꿀 수 없어요';
+}));
+
+/* 2. 투표 → 페이지 전환 */
+cta.addEventListener('click',()=>{
+  if(voted)return;
+  if(!picked){
+    cta.classList.remove('nudge');void cta.offsetWidth;cta.classList.add('nudge');
+    tracks.forEach(t=>{t.classList.remove('pop');void t.offsetWidth;t.classList.add('pop')});
+    toast('먼저 곡을 골라주세요');buzz([8,40,8]);return;
+  }
+  voted=true;buzz(18);confetti(cta);
+  const name=picked==='a'?'Neon Nights':'Good Vibes Only';
+  $('myPick').textContent=name;
+  toast('투표했어요 · '+name);
+  pVote.hidden=true;pLive.hidden=false;
+  requestAnimationFrame(()=>pLive.classList.add('in'));
+  tcap.textContent='결과까지';
+  tnote.textContent='기다리는 동안 지금 나오는 곡에 반응을 남겨보세요';
+  if(left>22)setLeft(22);
+});
+
+/* 3. 타이머 */
+function setLeft(v){left=v;renderTimer()}
+function renderTimer(){
+  tnum.textContent=left+'초';tfill.style.width=(left/total*100)+'%';
+  if(left<=10&&!ended){screen.classList.add('critical');tnote.textContent='CRITICAL TIME · 곧 결과가 확정돼요';}
+}
+renderTimer();
+const tick=setInterval(()=>{
+  if(ended)return;
+  left--;
+  if(left<=0){clearInterval(tick);finish();return}
+  renderTimer();
+  if(voted){pct=Math.min(72,Math.max(46,pct+(Math.random()*4-2)));$('myPct').textContent=Math.round(picked==='a'?pct:100-pct)+'%';}
+},1000);
+
+/* 4. 결과 시트 */
+function finish(){
+  ended=true;left=0;renderTimer();screen.classList.remove('critical');
+  tcap.textContent='다음 배틀까지';tnum.textContent='대기';tfill.style.width='100%';
+  tnote.textContent='DJ가 다음 배틀을 열면 진동으로 알려드려요';
+  const win=pct>=50?'a':'b';
+  const winName=win==='a'?'Neon Nights':'Good Vibes Only';
+  const winArtist=win==='a'?'Lunar Pulse · HOUSE':'Sunny Day Collective · TECHNO';
+  $('wtt').textContent=winName;$('wta').textContent=winArtist;
+  $('wk').textContent='WINNER · '+Math.round(win==='a'?pct:100-pct)+'%';
+  if(picked===win){$('vem').textContent='🎉';$('vtitle').textContent='내가 고른 곡이 이겼어요';
+    $('vdesc').textContent='지금부터 '+winName+'이(가) 플로어에 깔립니다';}
+  else{$('vem').textContent='🥀';$('vtitle').textContent='이번엔 취향이 소수였네요';
+    $('vdesc').textContent='마이너 취향도 훈장이에요 · 다음 곡은 '+winName;}
+  scrim.classList.add('on');sheet.classList.add('up');buzz([20,60,20]);
+  if(picked===win&&!reduce)setTimeout(()=>confetti(sheet),300);
+  sheet._win=[winName,winArtist];
+}
+$('closeSheet').addEventListener('click',()=>{
+  sheet.classList.remove('up');scrim.classList.remove('on');
+  const [n,a]=sheet._win;
+  $('npT').textContent=n;$('npA').textContent=a.split(' · ')[0]+' · DJ Set';
+  $('pnow').textContent='0:04';$('pfill').style.width='2%';$('pknob').style.left='2%';
+  elapsed=4;dur=225;
+  document.querySelectorAll('.reactbar button').forEach(b=>b.classList.remove('mine'));
+  counts={'🔥':0,'🙌':0,'💃':0,'😐':0,'🥱':0};paintSum();
+  toast(n+' 재생 시작 · 반응을 남겨보세요',2600);
+});
+
+/* 5. 재생 진행 바 */
+let elapsed=72,dur=225;
+const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+setInterval(()=>{
+  elapsed=(elapsed+1)%dur;
+  const p=elapsed/dur*100;
+  $('pfill').style.width=p+'%';$('pknob').style.left=p+'%';$('pnow').textContent=fmt(elapsed);
+},1000);
+
+/* 6. 줌 스타일 반응 */
+let counts={'🔥':128,'🙌':64,'💃':41,'😐':12,'🥱':5},mine=null,myCount=0;
+function paintSum(){
+  $('rsum').innerHTML=Object.entries(counts).map(([e,n])=>'<span>'+e+' '+n+'</span>').join('');
+}
+paintSum();
+document.querySelectorAll('.reactbar button').forEach(btn=>{
+  btn.addEventListener('click',e=>{
+    const emo=btn.dataset.e;
+    counts[emo]++;paintSum();
+    if(!mine){mine=emo;document.querySelectorAll('.reactbar button').forEach(b=>b.classList.toggle('mine',b===btn));
+      toast('대표 반응으로 기록했어요 · '+btn.dataset.l,2200);}
+    myCount++;$('rcount').textContent=myCount;
+    buzz(7);
+    if(reduce)return;
+    for(let i=0;i<2;i++){
+      const f=document.createElement('span');f.className='fly';f.textContent=emo;
+      const r=btn.getBoundingClientRect(),pr=$('fx').getBoundingClientRect();
+      f.style.left=(r.left-pr.left+r.width/2-13+(Math.random()*16-8))+'px';
+      f.style.setProperty('--x',(Math.random()*120-60|0)+'px');
+      f.style.setProperty('--r',(Math.random()*70-35|0)+'deg');
+      f.style.animationDelay=(i*0.12)+'s';
+      f.style.fontSize=(21+Math.random()*10).toFixed(0)+'px';
+      $('fx').appendChild(f);setTimeout(()=>f.remove(),2400);
+    }
+  });
+});
+/* 남들이 남기는 반응도 가끔 떠오르게 */
+if(!reduce)setInterval(()=>{
+  if(pLive.hidden)return;
+  const pool=['🔥','🔥','🙌','💃','😐'],emo=pool[Math.random()*pool.length|0];
+  counts[emo]++;paintSum();
+  const f=document.createElement('span');f.className='fly';f.textContent=emo;
+  f.style.left=(30+Math.random()*260)+'px';f.style.opacity='.75';
+  f.style.setProperty('--x',(Math.random()*100-50|0)+'px');
+  f.style.setProperty('--r',(Math.random()*60-30|0)+'deg');
+  f.style.fontSize=(18+Math.random()*8).toFixed(0)+'px';
+  $('fx').appendChild(f);setTimeout(()=>f.remove(),2400);
+},1400);
+
+/* 7. 질문 */
+const qp=$('qpanel');
+document.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{
+  if(qp.classList.contains('answered'))return;
+  qp.classList.add('answered');o.classList.add('mine');
+  document.querySelectorAll('.opt').forEach(x=>x.querySelector('.fillb').style.width=x.dataset.p+'%');
+  $('qdone').textContent='답변 완료 · 428명 중 314명이 답했어요';
+  buzz(10);toast('답변을 보냈어요 · 결과가 열렸습니다');
+}));
+})();
+</script>
+</body>
+</html>
